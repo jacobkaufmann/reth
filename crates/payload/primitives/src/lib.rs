@@ -275,11 +275,10 @@ pub fn validate_il_presence<T: EthereumHardforks>(
     has_il: bool,
 ) -> Result<(), EngineObjectValidationError> {
     match version {
-        EngineApiMessageVersion::V1 | EngineApiMessageVersion::V2  | EngineApiMessageVersion::V3 => {
+        EngineApiMessageVersion::V1 | EngineApiMessageVersion::V2 | EngineApiMessageVersion::V3 => {
             if has_il {
-                return Err(message_validation_kind.to_error(
-                    VersionSpecificValidationError::IlNotSupportedBeforeV4,
-                ))
+                return Err(message_validation_kind
+                    .to_error(VersionSpecificValidationError::IlNotSupportedBeforeV4))
             }
         }
         EngineApiMessageVersion::V4 => {
@@ -287,7 +286,9 @@ pub fn validate_il_presence<T: EthereumHardforks>(
             //
             // the IL is not part of the execution payload, so we only check for the payload
             // attributes
-            if std::matches!(message_validation_kind, MessageValidationKind::PayloadAttributes) && !has_il {
+            if std::matches!(message_validation_kind, MessageValidationKind::PayloadAttributes) &&
+                !has_il
+            {
                 return Err(message_validation_kind
                     .to_error(VersionSpecificValidationError::NoIlPostPrague))
             }
@@ -296,7 +297,6 @@ pub fn validate_il_presence<T: EthereumHardforks>(
 
     Ok(())
 }
-
 
 /// A type that represents whether or not we are validating a payload or payload attributes.
 ///
@@ -354,7 +354,12 @@ where
         payload_or_attrs.timestamp(),
         payload_or_attrs.parent_beacon_block_root().is_some(),
     )?;
-    validate_il_presence(chain_spec, version, payload_or_attrs.message_validation_kind(), payload_or_attrs.il().is_some())
+    validate_il_presence(
+        chain_spec,
+        version,
+        payload_or_attrs.message_validation_kind(),
+        payload_or_attrs.il().is_some(),
+    )
 }
 
 /// The version of Engine API message.

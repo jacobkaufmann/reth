@@ -7,7 +7,8 @@ use alloy_rlp::Encodable;
 use alloy_rpc_types_engine::{
     CancunPayloadFields, ClientVersionV1, ExecutionPayload, ExecutionPayloadBodiesV1,
     ExecutionPayloadInputV2, ExecutionPayloadSidecar, ExecutionPayloadV1, ExecutionPayloadV3,
-    ForkchoiceState, ForkchoiceUpdated, PayloadId, PayloadStatus, TransitionConfiguration, PraguePayloadFields,
+    ForkchoiceState, ForkchoiceUpdated, PayloadId, PayloadStatus, PraguePayloadFields,
+    TransitionConfiguration,
 };
 use async_trait::async_trait;
 use jsonrpsee_core::RpcResult;
@@ -936,10 +937,7 @@ where
             .map_err(|err| EngineApiError::Internal(Box::new(err)))?)
     }
 
-    async fn get_inclusion_list_v1(
-        &self,
-        _parent_hash: B256,
-    ) -> RpcResult<Vec<Vec<u8>>> {
+    async fn get_inclusion_list_v1(&self, _parent_hash: B256) -> RpcResult<Vec<Vec<u8>>> {
         // NOTE
         //
         // configure maximum elsewhere and in terms of bytes/gas/etc
