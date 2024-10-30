@@ -113,6 +113,9 @@ pub trait PayloadBuilderAttributes: Send + Sync + std::fmt::Debug {
 
     /// Returns the withdrawals for the running payload job.
     fn withdrawals(&self) -> &Withdrawals;
+
+    /// Returns the inclusion list (IL) for the running payload job.
+    fn il(&self) -> Option<&Vec<Vec<u8>>>;
 }
 
 /// The execution payload attribute type the CL node emits via the engine API.
@@ -130,6 +133,9 @@ pub trait PayloadAttributes:
 
     /// Return the parent beacon block root for the payload attributes.
     fn parent_beacon_block_root(&self) -> Option<B256>;
+
+    /// Returns the inclusion list for the payload attributes.
+    fn il(&self) -> Option<&Vec<Vec<u8>>>;
 }
 
 impl PayloadAttributes for EthPayloadAttributes {
@@ -144,6 +150,10 @@ impl PayloadAttributes for EthPayloadAttributes {
     fn parent_beacon_block_root(&self) -> Option<B256> {
         self.parent_beacon_block_root
     }
+
+    fn il(&self) -> Option<&Vec<Vec<u8>>> {
+        self.il.as_ref()
+    }
 }
 
 impl PayloadAttributes for OpPayloadAttributes {
@@ -157,6 +167,10 @@ impl PayloadAttributes for OpPayloadAttributes {
 
     fn parent_beacon_block_root(&self) -> Option<B256> {
         self.payload_attributes.parent_beacon_block_root
+    }
+
+    fn il(&self) -> Option<&Vec<Vec<u8>>> {
+        None
     }
 }
 

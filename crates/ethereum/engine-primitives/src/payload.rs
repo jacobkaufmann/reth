@@ -202,6 +202,8 @@ pub struct EthPayloadBuilderAttributes {
     pub withdrawals: Withdrawals,
     /// Root of the parent beacon block
     pub parent_beacon_block_root: Option<B256>,
+    /// Inclusion list for the generated payload.
+    pub il: Option<Vec<Vec<u8>>>,
 }
 
 // === impl EthPayloadBuilderAttributes ===
@@ -226,6 +228,7 @@ impl EthPayloadBuilderAttributes {
             prev_randao: attributes.prev_randao,
             withdrawals: attributes.withdrawals.unwrap_or_default().into(),
             parent_beacon_block_root: attributes.parent_beacon_block_root,
+            il: attributes.il,
         }
     }
 }
@@ -271,6 +274,10 @@ impl PayloadBuilderAttributes for EthPayloadBuilderAttributes {
 
     fn withdrawals(&self) -> &Withdrawals {
         &self.withdrawals
+    }
+
+    fn il(&self) -> Option<&Vec<Vec<u8>>> {
+        self.il.as_ref()
     }
 }
 

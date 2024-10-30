@@ -6,7 +6,7 @@ use alloy_primitives::{BlockHash, BlockNumber, B256, U64};
 use alloy_rpc_types_engine::{
     CancunPayloadFields, ClientVersionV1, ExecutionPayload, ExecutionPayloadBodiesV1,
     ExecutionPayloadInputV2, ExecutionPayloadSidecar, ExecutionPayloadV1, ExecutionPayloadV3,
-    ForkchoiceState, ForkchoiceUpdated, PayloadId, PayloadStatus, TransitionConfiguration,
+    ForkchoiceState, ForkchoiceUpdated, PayloadId, PayloadStatus, TransitionConfiguration, PraguePayloadFields,
 };
 use async_trait::async_trait;
 use jsonrpsee_core::RpcResult;
@@ -204,6 +204,7 @@ where
         versioned_hashes: Vec<B256>,
         parent_beacon_block_root: B256,
         execution_requests: Requests,
+        il: Vec<Vec<u8>>,
     ) -> EngineApiResult<PayloadStatus> {
         let payload = ExecutionPayload::from(payload);
         let payload_or_attrs =
@@ -222,7 +223,7 @@ where
                 payload,
                 ExecutionPayloadSidecar::v4(
                     CancunPayloadFields { versioned_hashes, parent_beacon_block_root },
-                    execution_requests,
+                    PraguePayloadFields { requests: execution_requests, il },
                 ),
             )
             .await?)
@@ -695,6 +696,7 @@ where
         versioned_hashes: Vec<B256>,
         parent_beacon_block_root: B256,
         execution_requests: Requests,
+        il: Vec<Vec<u8>>,
     ) -> RpcResult<PayloadStatus> {
         trace!(target: "rpc::engine", "Serving engine_newPayloadV4");
         let start = Instant::now();
@@ -705,6 +707,7 @@ where
             versioned_hashes,
             parent_beacon_block_root,
             execution_requests,
+            il,
         )
         .await;
         let elapsed = start.elapsed();

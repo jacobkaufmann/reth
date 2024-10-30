@@ -62,6 +62,14 @@ where
         }
     }
 
+    /// Returns the IL for the payload or attributes.
+    pub fn il(&self) -> Option<&Vec<Vec<u8>>> {
+        match self {
+            Self::ExecutionPayload { .. } => None,
+            Self::PayloadAttributes(attributes) => attributes.il(),
+        }
+    }
+
     /// Return a [`MessageValidationKind`] for the payload or attributes.
     pub const fn message_validation_kind(&self) -> MessageValidationKind {
         match self {

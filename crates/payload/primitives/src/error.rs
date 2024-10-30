@@ -111,6 +111,12 @@ pub enum VersionSpecificValidationError {
     /// root after Cancun
     #[error("no parent beacon block root post-cancun")]
     NoParentBeaconBlockRootPostCancun,
+    /// Thrown if the pre-V4 `PayloadAttributes` contains an IL.
+    #[error("IL not supported before V4")]
+    IlNotSupportedBeforeV4,
+    /// Thrown if the `PayloadAttributes` contains no IL after Prague.
+    #[error("no IL post-prague")]
+    NoIlPostPrague,
 }
 
 impl EngineObjectValidationError {

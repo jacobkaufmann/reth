@@ -11,4 +11,8 @@ pub enum EngineApiMessageVersion {
     ///
     /// Added for cancun hardfork.
     V3,
+    /// Version 4
+    ///
+    /// Added for prague hardfork.
+    V4,
 }
