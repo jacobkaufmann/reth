@@ -2,14 +2,14 @@
 
 use alloy_eips::{eip4844::BlobTransactionSidecar, eip7685::Requests};
 use alloy_primitives::{Address, B256, U256};
-use alloy_rlp::Encodable;
+use alloy_rlp::{Decodable, Encodable};
 use alloy_rpc_types_engine::{
     ExecutionPayloadEnvelopeV2, ExecutionPayloadEnvelopeV3, ExecutionPayloadEnvelopeV4,
     ExecutionPayloadV1, PayloadAttributes, PayloadId,
 };
 use reth_chain_state::ExecutedBlock;
 use reth_payload_primitives::{BuiltPayload, PayloadBuilderAttributes};
-use reth_primitives::{SealedBlock, Withdrawals};
+use reth_primitives::{SealedBlock, TransactionSignedEcRecovered, Withdrawals};
 use reth_rpc_types_compat::engine::payload::{
     block_to_payload_v1, block_to_payload_v3, convert_block_to_payload_field_v2,
 };
@@ -203,7 +203,7 @@ pub struct EthPayloadBuilderAttributes {
     /// Root of the parent beacon block
     pub parent_beacon_block_root: Option<B256>,
     /// Inclusion list for the generated payload.
-    pub il: Option<Vec<Vec<u8>>>,
+    pub il: Option<Vec<Option<TransactionSignedEcRecovered>>>,
 }
 
 // === impl EthPayloadBuilderAttributes ===
@@ -220,6 +220,13 @@ impl EthPayloadBuilderAttributes {
     pub fn new(parent: B256, attributes: PayloadAttributes) -> Self {
         let id = payload_id(&parent, &attributes);
 
+        // if the IL is present, then attempt to decode each transaction in the IL.
+        let il = attributes.il.map(|il| {
+            il.into_iter()
+                .map(|tx| TransactionSignedEcRecovered::decode(&mut tx.as_slice()).ok())
+                .collect()
+        });
+
         Self {
             id,
             parent,
@@ -228,7 +235,7 @@ impl EthPayloadBuilderAttributes {
             prev_randao: attributes.prev_randao,
             withdrawals: attributes.withdrawals.unwrap_or_default().into(),
             parent_beacon_block_root: attributes.parent_beacon_block_root,
-            il: attributes.il,
+            il,
         }
     }
 }
@@ -276,7 +283,7 @@ impl PayloadBuilderAttributes for EthPayloadBuilderAttributes {
         &self.withdrawals
     }
 
-    fn il(&self) -> Option<&Vec<Vec<u8>>> {
+    fn il(&self) -> Option<&Vec<Option<TransactionSignedEcRecovered>>> {
         self.il.as_ref()
     }
 }

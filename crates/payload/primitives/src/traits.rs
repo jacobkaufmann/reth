@@ -7,7 +7,7 @@ use alloy_rpc_types::{
 };
 use op_alloy_rpc_types_engine::OpPayloadAttributes;
 use reth_chain_state::ExecutedBlock;
-use reth_primitives::{SealedBlock, Withdrawals};
+use reth_primitives::{SealedBlock, TransactionSignedEcRecovered, Withdrawals};
 use tokio::sync::oneshot;
 
 /// A type that can request, subscribe to and resolve payloads.
@@ -115,7 +115,7 @@ pub trait PayloadBuilderAttributes: Send + Sync + std::fmt::Debug {
     fn withdrawals(&self) -> &Withdrawals;
 
     /// Returns the inclusion list (IL) for the running payload job.
-    fn il(&self) -> Option<&Vec<Vec<u8>>>;
+    fn il(&self) -> Option<&Vec<Option<TransactionSignedEcRecovered>>>;
 }
 
 /// The execution payload attribute type the CL node emits via the engine API.
