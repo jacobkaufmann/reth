@@ -9,13 +9,14 @@
 #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
 #![allow(clippy::useless_let_if_seq)]
 
-use alloy_consensus::EMPTY_OMMER_ROOT_HASH;
+use alloy_consensus::{Transaction, EMPTY_OMMER_ROOT_HASH};
 use alloy_eips::{eip4844::MAX_DATA_GAS_PER_BLOCK, eip7685::Requests, merge::BEACON_NONCE};
 use alloy_primitives::U256;
 use reth_basic_payload_builder::{
     commit_withdrawals, is_better_payload, BuildArguments, BuildOutcome, PayloadBuilder,
     PayloadConfig, WithdrawalsOutcome,
 };
+use reth_blockchain_tree::error::ProviderError;
 use reth_chain_state::ExecutedBlock;
 use reth_chainspec::ChainSpec;
 use reth_errors::RethError;
@@ -26,8 +27,8 @@ use reth_payload_builder::{EthBuiltPayload, EthPayloadBuilderAttributes};
 use reth_payload_primitives::{PayloadBuilderAttributes, PayloadBuilderError};
 use reth_primitives::{
     proofs::{self},
-    revm_primitives::{BlockEnv, CfgEnvWithHandlerCfg},
-    Block, BlockBody, EthereumHardforks, Header, Receipt,
+    revm_primitives::{Address, BlockEnv, CfgEnvWithHandlerCfg},
+    Block, BlockBody, EthereumHardforks, Header, Receipt, TransactionSigned,
 };
 use reth_provider::{ChainSpecProvider, StateProviderFactory};
 use reth_revm::database::StateProviderDatabase;
@@ -39,7 +40,7 @@ use reth_trie::HashedPostState;
 use revm::{
     db::{states::bundle_state::BundleRetention, State},
     primitives::{EVMError, EnvWithHandlerCfg, InvalidTransaction, ResultAndState},
-    DatabaseCommit,
+    Database, DatabaseCommit,
 };
 use revm_primitives::calc_excess_blob_gas;
 use std::sync::Arc;
@@ -124,6 +125,10 @@ where
 
         let pool = args.pool.clone();
 
+        // NOTE
+        //
+        // the payload may not be empty if there is an IL to apply to the payload. the call to
+        // `apply_inclusion_list` is in the definition of `default_ethereum_payload`.
         default_ethereum_payload(self.evm_config.clone(), args, cfg_env, block_env, |attributes| {
             pool.best_transactions_with_attributes(attributes)
         })?
@@ -307,15 +312,36 @@ where
         }));
 
         // update add to total fees
-        let miner_fee = tx
-            .effective_tip_per_gas(Some(base_fee))
-            .expect("fee is always valid; execution succeeded");
+        let miner_fee =
+            tx.effective_tip_per_gas(base_fee).expect("fee is always valid; execution succeeded");
         total_fees += U256::from(miner_fee) * U256::from(gas_used);
 
         // append sender and transaction to the respective lists
         executed_senders.push(tx.signer());
         executed_txs.push(tx.into_signed());
     }
+
+    // apply IL
+    //
+    // NOTE
+    //
+    // we apply after all other transactions so that we can ensure that the payload is IL-compliant.
+    // if we attempted to apply the IL at the beginning, and then applied some other transactions,
+    // then we would need to go back through the IL and retry any transactions that could not be
+    // included at the start but may now be valid due to state changes caused by non-IL
+    // transactions.
+    apply_inclusion_list(
+        &mut db,
+        &evm_config,
+        &attributes,
+        &initialized_cfg,
+        &initialized_block_env,
+        &mut cumulative_gas_used,
+        &mut total_fees,
+        &mut executed_txs,
+        &mut executed_senders,
+        &mut receipts,
+    )?;
 
     // check if we have a better block
     if !is_better_payload(best_payload.as_ref(), total_fees) {
@@ -455,4 +481,133 @@ where
     payload.extend_sidecars(blob_sidecars);
 
     Ok(BuildOutcome::Better { payload, cached_reads })
+}
+
+/// Applies the (optional) inclusion list (IL) to the payload represented by `db`.
+#[inline]
+pub fn apply_inclusion_list<DB, EvmConfig>(
+    db: &mut State<DB>,
+    evm_config: &EvmConfig,
+    attributes: &EthPayloadBuilderAttributes,
+    initialized_cfg: &CfgEnvWithHandlerCfg,
+    initialized_block_env: &BlockEnv,
+    cumulative_gas_used: &mut u64,
+    total_fees: &mut U256,
+    executed_txs: &mut Vec<TransactionSigned>,
+    executed_senders: &mut Vec<Address>,
+    receipts: &mut Vec<Option<Receipt>>,
+) -> Result<(), PayloadBuilderError>
+where
+    DB: Database<Error = ProviderError>,
+    EvmConfig: ConfigureEvm<Header = Header>,
+{
+    let base_fee = initialized_block_env.basefee.to::<u64>();
+    let block_gas_limit: u64 = initialized_block_env.gas_limit.to::<u64>();
+
+    let empty_il = vec![];
+    let il = attributes.il.as_ref().unwrap_or(&empty_il);
+
+    // the IL bitfield tracks whether we need to consider the IL transaction at the corresponding
+    // index any longer.
+    //
+    // if the tx could not be decoded, then we mark it false.
+    // if the tx cannot execute for some reason that cannot change, then we mark it false.
+    // if the tx executes successfully and is added to the block, then we mark it false.
+    //
+    // if a transaction from the IL is executed successfully, then we need to go back over each of
+    // the remaining IL transactions that might now be valid.
+    let mut il_bitfield: Vec<_> = il.iter().map(|tx| tx.is_some()).collect();
+
+    let mut i = 0;
+    let n = il.len();
+
+    while i < n {
+        if !il_bitfield[i] {
+            i += 1;
+            continue;
+        }
+
+        // if the IL tx were not able to be decoded, then the corresponding index in the bitfield
+        // should be `false` in the check above.
+        let tx = il[i].as_ref().expect("IL tx exists b/c it was decoded");
+
+        // transaction is a blob transaction which is not supported
+        //
+        // NOTE
+        //
+        // we should catch this earlier, so that such a transaction does not occupy memory.
+        if tx.is_eip4844() {
+            il_bitfield[i] = false;
+            i += 1;
+            continue;
+        }
+
+        // transaction gas limit too high
+        if *cumulative_gas_used + tx.gas_limit() > block_gas_limit {
+            il_bitfield[i] = false;
+            i += 1;
+            continue;
+        }
+
+        let env = EnvWithHandlerCfg::new_with_cfg_env(
+            initialized_cfg.clone(),
+            initialized_block_env.clone(),
+            evm_config.tx_env(&tx, tx.signer()),
+        );
+        let mut evm = evm_config.evm_with_env(&mut *db, env);
+
+        let ResultAndState { result, state } = match evm.transact() {
+            Ok(res) => res,
+            Err(err) => match err {
+                EVMError::Transaction(err) => {
+                    match err {
+                        // a transaction whose nonce is too high may become valid.
+                        // a transaction whose sender lacks funds may become valid.
+                        InvalidTransaction::NonceTooHigh { .. } |
+                        InvalidTransaction::LackOfFundForMaxFee { .. } => {}
+                        _other => {
+                            il_bitfield[i] = false;
+                        }
+                    }
+
+                    i += 1;
+                    continue;
+                }
+                err => return Err(PayloadBuilderError::EvmExecutionError(err)),
+            },
+        };
+
+        drop(evm);
+        db.commit(state);
+
+        let gas_used = result.gas_used();
+        *cumulative_gas_used += gas_used;
+
+        #[allow(clippy::needless_update)]
+        receipts.push(Some(Receipt {
+            tx_type: tx.tx_type(),
+            success: result.is_success(),
+            cumulative_gas_used: *cumulative_gas_used,
+            logs: result.into_logs().into_iter().map(Into::into).collect(),
+            ..Default::default()
+        }));
+
+        let miner_fee =
+            tx.effective_tip_per_gas(base_fee).expect("fee is always valid; execution succeeded");
+        *total_fees += U256::from(miner_fee) * U256::from(gas_used);
+
+        executed_senders.push(tx.signer());
+        executed_txs.push(tx.clone().into_signed());
+
+        // NOTE
+        //
+        // if we are here, then the transaction executed successfully.
+        //
+        // instead of setting the index to zero, we could keep track of a flag that indicates
+        // whether or not we should perform another pass of the IL.
+        il_bitfield[i] = false;
+        i = 0;
+    }
+
+    Ok(())
 }
