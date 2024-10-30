@@ -29,6 +29,7 @@ reth-transaction-pool.workspace = true
 # ethereum
 alloy-eips.workspace = true
 alloy-primitives.workspace = true
+alloy-rlp.workspace = true
 alloy-rpc-types-engine = { workspace = true, features = ["jsonrpsee-types"] }
 
 # async

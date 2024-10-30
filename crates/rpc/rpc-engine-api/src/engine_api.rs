@@ -3,6 +3,7 @@ use crate::{
 };
 use alloy_eips::{eip4844::BlobAndProofV1, eip7685::Requests};
 use alloy_primitives::{BlockHash, BlockNumber, B256, U64};
+use alloy_rlp::Encodable;
 use alloy_rpc_types_engine::{
     CancunPayloadFields, ClientVersionV1, ExecutionPayload, ExecutionPayloadBodiesV1,
     ExecutionPayloadInputV2, ExecutionPayloadSidecar, ExecutionPayloadV1, ExecutionPayloadV3,
@@ -933,6 +934,37 @@ where
             .tx_pool
             .get_blobs_for_versioned_hashes(&versioned_hashes)
             .map_err(|err| EngineApiError::Internal(Box::new(err)))?)
+    }
+
+    async fn get_inclusion_list_v1(
+        &self,
+        _parent_hash: B256,
+    ) -> RpcResult<Vec<Vec<u8>>> {
+        // NOTE
+        //
+        // configure maximum elsewhere and in terms of bytes/gas/etc
+        const MAX: usize = 16;
+
+        // NOTE
+        //
+        // we may not be able to constrain the transactions that we can fetch from the transaction
+        // pool by parent hash (for now)
+        let mut txs = self.inner.tx_pool.pending_transactions();
+
+        txs.sort_by_key(|tx| tx.timestamp);
+        txs.truncate(MAX);
+        let txs: Vec<Vec<u8>> = txs
+            .into_iter()
+            .map(|tx| {
+                let len = tx.encoded_length();
+                let mut buf = vec![0u8; len];
+                let tx = tx.to_recovered_transaction();
+                tx.encode(&mut buf);
+                buf
+            })
+            .collect();
+
+        Ok(txs)
     }
 }
 

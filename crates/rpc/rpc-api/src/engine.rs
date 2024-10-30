@@ -215,6 +215,13 @@ pub trait EngineApi<Engine: EngineTypes> {
         &self,
         versioned_hashes: Vec<B256>,
     ) -> RpcResult<Vec<Option<BlobAndProofV1>>>;
+
+    /// Fetch the inclusion list (IL).
+    #[method(name = "getInclusionListV1")]
+    async fn get_inclusion_list_v1(
+        &self,
+        parent_hash: B256,
+    ) -> RpcResult<Vec<Vec<u8>>>;
 }
 
 /// A subset of the ETH rpc interface: <https://ethereum.github.io/execution-apis/api-documentation/>
