@@ -9,6 +9,7 @@ use alloy_primitives::{
     map::{HashMap, HashSet},
     BlockNumber, B256, U256,
 };
+use alloy_rlp::Decodable;
 use alloy_rpc_types_engine::{
     ExecutionPayload, ExecutionPayloadSidecar, ForkchoiceState, PayloadStatus, PayloadStatusEnum,
     PayloadValidationError,
@@ -28,12 +29,13 @@ use reth_chainspec::EthereumHardforks;
 use reth_consensus::{Consensus, PostExecutionInput};
 use reth_engine_primitives::{EngineApiMessageVersion, EngineTypes};
 use reth_errors::{ConsensusError, ProviderResult};
-use reth_evm::execute::BlockExecutorProvider;
+use reth_evm::execute::{BlockExecutionInput, BlockExecutorProvider};
 use reth_payload_builder::PayloadBuilderHandle;
 use reth_payload_primitives::{PayloadAttributes, PayloadBuilder, PayloadBuilderAttributes};
 use reth_payload_validator::ExecutionPayloadValidator;
 use reth_primitives::{
     Block, GotExpected, Header, SealedBlock, SealedBlockWithSenders, SealedHeader,
+    TransactionSignedEcRecovered,
 };
 use reth_provider::{
     providers::ConsistentDbView, BlockReader, DatabaseProviderFactory, ExecutionOutcome,
@@ -752,6 +754,17 @@ where
         //
         // This validation **MUST** be instantly run in all cases even during active sync process.
         let parent_hash = payload.parent_hash();
+
+        // NOTE
+        //
+        // we may not want to `flat_map` here so that IL indices of invalid transactions are
+        // preserved.
+        let il: Option<Vec<TransactionSignedEcRecovered>> = sidecar.il().map(|il| {
+            il.into_iter()
+                .flat_map(|tx| TransactionSignedEcRecovered::decode(&mut tx.as_slice()).ok())
+                .collect()
+        });
+
         let block = match self.payload_validator.ensure_well_formed_payload(payload, sidecar) {
             Ok(block) => block,
             Err(error) => {
@@ -789,7 +802,7 @@ where
         let status = if self.backfill_sync_state.is_idle() {
             let mut latest_valid_hash = None;
             let num_hash = block.num_hash();
-            match self.insert_block_without_senders(block) {
+            match self.insert_block_without_senders(block, il) {
                 Ok(status) => {
                     let status = match status {
                         InsertPayloadOk2::Inserted(BlockStatus2::Valid) => {
@@ -812,6 +825,10 @@ where
                 }
                 Err(error) => self.on_insert_block_error(error)?,
             }
+        // TODO
+        //
+        // pass in the IL along with the block to buffer, so that, when we catch up via sync, then
+        // we can check the IL that we got for the block.
         } else if let Err(error) = self.buffer_block_without_senders(block) {
             self.on_insert_block_error(error)?
         } else {
@@ -1762,7 +1779,11 @@ where
         let block_count = blocks.len();
         for child in blocks {
             let child_num_hash = child.num_hash();
-            match self.insert_block(child) {
+            // NOTE
+            //
+            // we insert without an inclusion list, because we only enforce the IL for
+            // `on_new_payload`.
+            match self.insert_block(child, None) {
                 Ok(res) => {
                     debug!(target: "engine::tree", child =?child_num_hash, ?res, "connected buffered block");
                     if self.is_sync_target_head(child_num_hash.hash) &&
@@ -2072,7 +2093,11 @@ where
         }
 
         // try to append the block
-        match self.insert_block(block) {
+        //
+        // NOTE
+        //
+        // we insert without an inclusion list, because we only enforce the IL for `on_new_payload`.
+        match self.insert_block(block, None) {
             Ok(InsertPayloadOk2::Inserted(BlockStatus2::Valid)) => {
                 if self.is_sync_target_head(block_num_hash.hash) {
                     trace!(target: "engine::tree", "appended downloaded sync target block");
@@ -2115,9 +2140,10 @@ where
     fn insert_block_without_senders(
         &mut self,
         block: SealedBlock,
+        il: Option<Vec<TransactionSignedEcRecovered>>,
     ) -> Result<InsertPayloadOk2, InsertBlockErrorTwo> {
         match block.try_seal_with_senders() {
-            Ok(block) => self.insert_block(block),
+            Ok(block) => self.insert_block(block, il),
             Err(block) => Err(InsertBlockErrorTwo::sender_recovery_error(block)),
         }
     }
@@ -2125,14 +2151,16 @@ where
     fn insert_block(
         &mut self,
         block: SealedBlockWithSenders,
+        il: Option<Vec<TransactionSignedEcRecovered>>,
     ) -> Result<InsertPayloadOk2, InsertBlockErrorTwo> {
-        self.insert_block_inner(block.clone())
+        self.insert_block_inner(block.clone(), il)
             .map_err(|kind| InsertBlockErrorTwo::new(block.block, kind))
     }
 
     fn insert_block_inner(
         &mut self,
         block: SealedBlockWithSenders,
+        il: Option<Vec<TransactionSignedEcRecovered>>,
     ) -> Result<InsertPayloadOk2, InsertBlockErrorKindTwo> {
         debug!(target: "engine::tree", block=?block.num_hash(), parent = ?block.parent_hash, state_root = ?block.state_root, "Inserting new block into tree");
 
@@ -2183,9 +2211,10 @@ where
         let block_hash = block.hash();
         let sealed_block = Arc::new(block.block.clone());
         let block = block.unseal();
+        let exec_input = BlockExecutionInput::new(&block, U256::MAX, il.unwrap_or_default());
 
         let exec_time = Instant::now();
-        let output = self.metrics.executor.execute_metered(executor, (&block, U256::MAX).into())?;
+        let output = self.metrics.executor.execute_metered(executor, exec_input)?;
 
         trace!(target: "engine::tree", elapsed=?exec_time.elapsed(), ?block_number, "Executed block");
         if let Err(err) = self.consensus.validate_block_post_execution(

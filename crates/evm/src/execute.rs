@@ -14,7 +14,7 @@ use alloy_eips::eip7685::Requests;
 use alloy_primitives::BlockNumber;
 use core::{fmt::Display, marker::PhantomData};
 use reth_consensus::ConsensusError;
-use reth_primitives::{BlockWithSenders, Receipt};
+use reth_primitives::{BlockWithSenders, Receipt, TransactionSignedEcRecovered};
 use reth_prune_types::PruneModes;
 use reth_revm::batch::BlockBatchRecord;
 use revm::{db::BundleState, State};
@@ -221,6 +221,15 @@ where
         self.state_mut().take_bundle()
     }
 
+    /// Validate a block with regard to the associated inclusion list.
+    fn validate_block_inclusion_list(
+        &self,
+        _block: &BlockWithSenders,
+        _il: impl AsRef<[TransactionSignedEcRecovered]>,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
     /// Validate a block with regard to execution results.
     fn validate_block_post_execution(
         &self,
@@ -330,11 +339,12 @@ where
     type Error = S::Error;
 
     fn execute(mut self, input: Self::Input<'_>) -> Result<Self::Output, Self::Error> {
-        let BlockExecutionInput { block, total_difficulty } = input;
+        let BlockExecutionInput { block, total_difficulty, il } = input;
 
         self.strategy.apply_pre_execution_changes(block, total_difficulty)?;
         let ExecuteOutput { receipts, gas_used } =
             self.strategy.execute_transactions(block, total_difficulty)?;
+        self.strategy.validate_block_inclusion_list(block, il)?;
         let requests =
             self.strategy.apply_post_execution_changes(block, total_difficulty, &receipts)?;
         let state = self.strategy.finish();
@@ -350,11 +360,12 @@ where
     where
         F: FnMut(&State<DB>),
     {
-        let BlockExecutionInput { block, total_difficulty } = input;
+        let BlockExecutionInput { block, total_difficulty, il } = input;
 
         self.strategy.apply_pre_execution_changes(block, total_difficulty)?;
         let ExecuteOutput { receipts, gas_used } =
             self.strategy.execute_transactions(block, total_difficulty)?;
+        self.strategy.validate_block_inclusion_list(block, il)?;
         let requests =
             self.strategy.apply_post_execution_changes(block, total_difficulty, &receipts)?;
 
@@ -373,13 +384,14 @@ where
     where
         H: OnStateHook + 'static,
     {
-        let BlockExecutionInput { block, total_difficulty } = input;
+        let BlockExecutionInput { block, total_difficulty, il } = input;
 
         self.strategy.with_state_hook(Some(Box::new(state_hook)));
 
         self.strategy.apply_pre_execution_changes(block, total_difficulty)?;
         let ExecuteOutput { receipts, gas_used } =
             self.strategy.execute_transactions(block, total_difficulty)?;
+        self.strategy.validate_block_inclusion_list(block, il)?;
         let requests =
             self.strategy.apply_post_execution_changes(block, total_difficulty, &receipts)?;
 
@@ -425,7 +437,7 @@ where
     type Error = BlockExecutionError;
 
     fn execute_and_verify_one(&mut self, input: Self::Input<'_>) -> Result<(), Self::Error> {
-        let BlockExecutionInput { block, total_difficulty } = input;
+        let BlockExecutionInput { block, total_difficulty, il } = input;
 
         if self.batch_record.first_block().is_none() {
             self.batch_record.set_first_block(block.number);
@@ -434,6 +446,7 @@ where
         self.strategy.apply_pre_execution_changes(block, total_difficulty)?;
         let ExecuteOutput { receipts, .. } =
             self.strategy.execute_transactions(block, total_difficulty)?;
+        self.strategy.validate_block_inclusion_list(block, il)?;
         let requests =
             self.strategy.apply_post_execution_changes(block, total_difficulty, &receipts)?;
 

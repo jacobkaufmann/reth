@@ -1,26 +1,34 @@
 use alloy_eips::eip7685::Requests;
 use alloy_primitives::U256;
+use reth_primitives::TransactionSignedEcRecovered;
 use revm::db::BundleState;
 
-/// A helper type for ethereum block inputs that consists of a block and the total difficulty.
+/// A helper type for ethereum block inputs that consists of a block and the total difficulty and
+/// the associated inclusion list (IL).
 #[derive(Debug)]
 pub struct BlockExecutionInput<'a, Block> {
     /// The block to execute.
     pub block: &'a Block,
     /// The total difficulty of the block.
     pub total_difficulty: U256,
+    /// The inclusion list (IL) that the block must satisfy.
+    pub il: Vec<TransactionSignedEcRecovered>,
 }
 
 impl<'a, Block> BlockExecutionInput<'a, Block> {
     /// Creates a new input.
-    pub const fn new(block: &'a Block, total_difficulty: U256) -> Self {
-        Self { block, total_difficulty }
+    pub const fn new(
+        block: &'a Block,
+        total_difficulty: U256,
+        il: Vec<TransactionSignedEcRecovered>,
+    ) -> Self {
+        Self { block, total_difficulty, il }
     }
 }
 
 impl<'a, Block> From<(&'a Block, U256)> for BlockExecutionInput<'a, Block> {
     fn from((block, total_difficulty): (&'a Block, U256)) -> Self {
-        Self::new(block, total_difficulty)
+        Self::new(block, total_difficulty, vec![])
     }
 }
 
