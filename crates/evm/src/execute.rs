@@ -223,8 +223,10 @@ where
 
     /// Validate a block with regard to the associated inclusion list.
     fn validate_block_inclusion_list(
-        &self,
+        &mut self,
         _block: &BlockWithSenders,
+        _total_difficulty: U256,
+        _exec_output: &ExecuteOutput,
         _il: impl AsRef<[TransactionSignedEcRecovered]>,
     ) -> Result<(), Self::Error> {
         Ok(())
@@ -342,9 +344,9 @@ where
         let BlockExecutionInput { block, total_difficulty, il } = input;
 
         self.strategy.apply_pre_execution_changes(block, total_difficulty)?;
-        let ExecuteOutput { receipts, gas_used } =
-            self.strategy.execute_transactions(block, total_difficulty)?;
-        self.strategy.validate_block_inclusion_list(block, il)?;
+        let exec_output = self.strategy.execute_transactions(block, total_difficulty)?;
+        self.strategy.validate_block_inclusion_list(block, total_difficulty, &exec_output, il)?;
+        let ExecuteOutput { receipts, gas_used } = exec_output;
         let requests =
             self.strategy.apply_post_execution_changes(block, total_difficulty, &receipts)?;
         let state = self.strategy.finish();
@@ -363,9 +365,9 @@ where
         let BlockExecutionInput { block, total_difficulty, il } = input;
 
         self.strategy.apply_pre_execution_changes(block, total_difficulty)?;
-        let ExecuteOutput { receipts, gas_used } =
-            self.strategy.execute_transactions(block, total_difficulty)?;
-        self.strategy.validate_block_inclusion_list(block, il)?;
+        let exec_output = self.strategy.execute_transactions(block, total_difficulty)?;
+        self.strategy.validate_block_inclusion_list(block, total_difficulty, &exec_output, il)?;
+        let ExecuteOutput { receipts, gas_used } = exec_output;
         let requests =
             self.strategy.apply_post_execution_changes(block, total_difficulty, &receipts)?;
 
@@ -389,9 +391,9 @@ where
         self.strategy.with_state_hook(Some(Box::new(state_hook)));
 
         self.strategy.apply_pre_execution_changes(block, total_difficulty)?;
-        let ExecuteOutput { receipts, gas_used } =
-            self.strategy.execute_transactions(block, total_difficulty)?;
-        self.strategy.validate_block_inclusion_list(block, il)?;
+        let exec_output = self.strategy.execute_transactions(block, total_difficulty)?;
+        self.strategy.validate_block_inclusion_list(block, total_difficulty, &exec_output, il)?;
+        let ExecuteOutput { receipts, gas_used } = exec_output;
         let requests =
             self.strategy.apply_post_execution_changes(block, total_difficulty, &receipts)?;
 
@@ -444,9 +446,9 @@ where
         }
 
         self.strategy.apply_pre_execution_changes(block, total_difficulty)?;
-        let ExecuteOutput { receipts, .. } =
-            self.strategy.execute_transactions(block, total_difficulty)?;
-        self.strategy.validate_block_inclusion_list(block, il)?;
+        let exec_output = self.strategy.execute_transactions(block, total_difficulty)?;
+        self.strategy.validate_block_inclusion_list(block, total_difficulty, &exec_output, il)?;
+        let ExecuteOutput { receipts, gas_used: _gas_used } = exec_output;
         let requests =
             self.strategy.apply_post_execution_changes(block, total_difficulty, &receipts)?;
 

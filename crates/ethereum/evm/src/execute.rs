@@ -1,5 +1,7 @@
 //! Ethereum block execution strategy.
 
+use std::collections::HashSet;
+
 use crate::{
     dao_fork::{DAO_HARDFORK_BENEFICIARY, DAO_HARDKFORK_ACCOUNTS},
     EthEvmConfig,
@@ -20,7 +22,7 @@ use reth_evm::{
     system_calls::{OnStateHook, SystemCaller},
     ConfigureEvm,
 };
-use reth_primitives::{BlockWithSenders, Receipt};
+use reth_primitives::{BlockWithSenders, Receipt, TransactionSignedEcRecovered};
 use reth_revm::db::State;
 use revm_primitives::{
     db::{Database, DatabaseCommit},
@@ -262,6 +264,52 @@ where
 
     fn with_state_hook(&mut self, hook: Option<Box<dyn OnStateHook>>) {
         self.system_caller.with_state_hook(hook);
+    }
+
+    fn validate_block_inclusion_list(
+        &mut self,
+        block: &BlockWithSenders,
+        total_difficulty: U256,
+        exec_output: &ExecuteOutput,
+        il: impl AsRef<[TransactionSignedEcRecovered]>,
+    ) -> Result<(), Self::Error> {
+        // collect the transaction hash for each transaction included in the block
+        let txs: HashSet<_> = block.body.transactions.iter().map(|tx| tx.hash()).collect();
+
+        // configure the EVM
+        let env = self.evm_env_for_block(&block.header, total_difficulty);
+        let mut evm = self.evm_config.evm_with_env(&mut self.state, env);
+
+        // compute the amount of remaining gas available
+        let block_available_gas = block.header.gas_limit - exec_output.gas_used;
+
+        for tx in il.as_ref() {
+            // if the transaction was included in the block, then continue to the next transaction
+            if txs.contains(&tx.hash()) {
+                continue;
+            }
+
+            // if the transaction gas limit could exceed the block gas limit, then continue to the
+            // next transaction
+            if tx.gas_limit() > block_available_gas {
+                continue;
+            }
+
+            // prepare the EVM to execute the transaction
+            let sender = tx.signer();
+            self.evm_config.fill_tx_env(evm.tx_mut(), tx.as_signed(), sender);
+
+            // if the transaction executes, then return an error
+            //
+            // TODO
+            //
+            // determine how to handle e.g. database error here
+            if evm.transact().is_ok() {
+                return Err(BlockExecutionError::Consensus(ConsensusError::InclusionList));
+            }
+        }
+
+        Ok(())
     }
 
     fn validate_block_post_execution(

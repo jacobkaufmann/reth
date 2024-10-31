@@ -389,6 +389,10 @@ pub enum ConsensusError {
         /// The block's timestamp.
         timestamp: u64,
     },
+
+    /// Error when the block does not comply with the inclusion list (IL).
+    #[display("block did not satisfy inclusion list")]
+    InclusionList,
 }
 
 impl ConsensusError {
