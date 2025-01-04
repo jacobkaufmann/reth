@@ -1,20 +1,19 @@
 use std::sync::Arc;
 
-use alloy_consensus::{constants::ETH_TO_WEI, TxEip2930};
+use alloy_consensus::{constants::ETH_TO_WEI, Header, TxEip2930};
 use alloy_genesis::{Genesis, GenesisAccount};
 use alloy_primitives::{b256, Address, TxKind, U256};
 use eyre::OptionExt;
 use reth_chainspec::{ChainSpec, ChainSpecBuilder, EthereumHardfork, MAINNET, MIN_TRANSACTION_GAS};
-use reth_evm::execute::{
-    BatchExecutor, BlockExecutionInput, BlockExecutionOutput, BlockExecutorProvider, Executor,
-};
+use reth_evm::execute::{BatchExecutor, BlockExecutionOutput, BlockExecutorProvider, Executor};
 use reth_evm_ethereum::execute::EthExecutorProvider;
+use reth_node_api::FullNodePrimitives;
 use reth_primitives::{
-    Block, BlockBody, BlockWithSenders, Header, Receipt, SealedBlockWithSenders, Transaction,
+    Block, BlockBody, BlockExt, BlockWithSenders, Receipt, SealedBlockWithSenders, Transaction,
 };
 use reth_provider::{
     providers::ProviderNodeTypes, BlockWriter as _, ExecutionOutcome, LatestStateProviderRef,
-    ProviderFactory, StaticFileProviderFactory,
+    ProviderFactory,
 };
 use reth_revm::database::StateProviderDatabase;
 use reth_testing_utils::generators::sign_tx_with_key_pair;
@@ -57,17 +56,20 @@ pub(crate) fn execute_block_and_commit_to_database<N>(
     block: &BlockWithSenders,
 ) -> eyre::Result<BlockExecutionOutput<Receipt>>
 where
-    N: ProviderNodeTypes,
+    N: ProviderNodeTypes<
+        Primitives: FullNodePrimitives<
+            Block = reth_primitives::Block,
+            BlockBody = reth_primitives::BlockBody,
+            Receipt = reth_primitives::Receipt,
+        >,
+    >,
 {
     let provider = provider_factory.provider()?;
 
     // Execute the block to produce a block execution output
     let mut block_execution_output = EthExecutorProvider::ethereum(chain_spec)
-        .executor(StateProviderDatabase::new(LatestStateProviderRef::new(
-            provider.tx_ref(),
-            provider.static_file_provider(),
-        )))
-        .execute(BlockExecutionInput { block, total_difficulty: U256::ZERO })?;
+        .executor(StateProviderDatabase::new(LatestStateProviderRef::new(&provider)))
+        .execute(block)?;
     block_execution_output.state.reverts.sort();
 
     // Convert the block execution output to an execution outcome for committing to the database
@@ -164,7 +166,13 @@ pub(crate) fn blocks_and_execution_outputs<N>(
     key_pair: Keypair,
 ) -> eyre::Result<Vec<(SealedBlockWithSenders, BlockExecutionOutput<Receipt>)>>
 where
-    N: ProviderNodeTypes,
+    N: ProviderNodeTypes<
+        Primitives: FullNodePrimitives<
+            Block = reth_primitives::Block,
+            BlockBody = reth_primitives::BlockBody,
+            Receipt = reth_primitives::Receipt,
+        >,
+    >,
 {
     let (block1, block2) = blocks(chain_spec.clone(), key_pair)?;
 
@@ -186,20 +194,17 @@ pub(crate) fn blocks_and_execution_outcome<N>(
 ) -> eyre::Result<(Vec<SealedBlockWithSenders>, ExecutionOutcome)>
 where
     N: ProviderNodeTypes,
+    N::Primitives:
+        FullNodePrimitives<Block = reth_primitives::Block, Receipt = reth_primitives::Receipt>,
 {
     let (block1, block2) = blocks(chain_spec.clone(), key_pair)?;
 
     let provider = provider_factory.provider()?;
 
-    let executor =
-        EthExecutorProvider::ethereum(chain_spec).batch_executor(StateProviderDatabase::new(
-            LatestStateProviderRef::new(provider.tx_ref(), provider.static_file_provider()),
-        ));
+    let executor = EthExecutorProvider::ethereum(chain_spec)
+        .batch_executor(StateProviderDatabase::new(LatestStateProviderRef::new(&provider)));
 
-    let mut execution_outcome = executor.execute_and_verify_batch(vec![
-        (&block1, U256::ZERO).into(),
-        (&block2, U256::ZERO).into(),
-    ])?;
+    let mut execution_outcome = executor.execute_and_verify_batch(vec![&block1, &block2])?;
     execution_outcome.state_mut().reverts.sort();
 
     let block1 = block1.seal_slow();

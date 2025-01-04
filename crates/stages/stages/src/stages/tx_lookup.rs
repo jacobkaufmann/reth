@@ -1,12 +1,15 @@
+use alloy_eips::eip2718::Encodable2718;
 use alloy_primitives::{TxHash, TxNumber};
 use num_traits::Zero;
 use reth_config::config::{EtlConfig, TransactionLookupConfig};
-use reth_db::{tables, RawKey, RawValue};
+use reth_db::{table::Value, tables, RawKey, RawValue};
 use reth_db_api::{
     cursor::{DbCursorRO, DbCursorRW},
     transaction::{DbTx, DbTxMut},
 };
 use reth_etl::Collector;
+use reth_primitives::NodePrimitives;
+use reth_primitives_traits::SignedTransaction;
 use reth_provider::{
     BlockReader, DBProvider, PruneCheckpointReader, PruneCheckpointWriter,
     StaticFileProviderFactory, StatsReader, TransactionsProvider, TransactionsProviderExt,
@@ -60,7 +63,7 @@ where
         + BlockReader
         + PruneCheckpointReader
         + StatsReader
-        + StaticFileProviderFactory
+        + StaticFileProviderFactory<Primitives: NodePrimitives<SignedTx: Value + SignedTransaction>>
         + TransactionsProviderExt,
 {
     /// Return the id of the stage
@@ -206,7 +209,7 @@ where
             for tx_id in body.tx_num_range() {
                 // First delete the transaction and hash to id mapping
                 if let Some(transaction) = static_file_provider.transaction_by_id(tx_id)? {
-                    if tx_hash_number_cursor.seek_exact(transaction.hash())?.is_some() {
+                    if tx_hash_number_cursor.seek_exact(transaction.trie_hash())?.is_some() {
                         tx_hash_number_cursor.delete_current()?;
                     }
                 }
@@ -254,7 +257,8 @@ mod tests {
     use assert_matches::assert_matches;
     use reth_primitives::SealedBlock;
     use reth_provider::{
-        providers::StaticFileWriter, DatabaseProviderFactory, StaticFileProviderFactory,
+        providers::StaticFileWriter, BlockBodyIndicesProvider, DatabaseProviderFactory,
+        StaticFileProviderFactory,
     };
     use reth_stages_api::StageUnitCheckpoint;
     use reth_testing_utils::generators::{
@@ -381,9 +385,9 @@ mod tests {
         let mut tx_hash_numbers = Vec::new();
         let mut tx_hash_number = 0;
         for block in &blocks[..=max_processed_block] {
-            for transaction in &block.body.transactions {
+            for transaction in &block.body().transactions {
                 if block.number > max_pruned_block {
-                    tx_hash_numbers.push((transaction.hash, tx_hash_number));
+                    tx_hash_numbers.push((transaction.hash(), tx_hash_number));
                 }
                 tx_hash_number += 1;
             }
@@ -399,7 +403,7 @@ mod tests {
                     tx_number: Some(
                         blocks[..=max_pruned_block as usize]
                             .iter()
-                            .map(|block| block.body.transactions.len() as u64)
+                            .map(|block| block.body().transactions.len() as u64)
                             .sum::<u64>()
                             .sub(1), // `TxNumber` is 0-indexed
                     ),
@@ -415,9 +419,9 @@ mod tests {
             EntitiesCheckpoint {
                 processed: blocks[..=max_processed_block]
                     .iter()
-                    .map(|block| block.body.transactions.len() as u64)
-                    .sum::<u64>(),
-                total: blocks.iter().map(|block| block.body.transactions.len() as u64).sum::<u64>()
+                    .map(|block| block.body().transactions.len() as u64)
+                    .sum(),
+                total: blocks.iter().map(|block| block.body().transactions.len() as u64).sum()
             }
         );
     }

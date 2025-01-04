@@ -7,13 +7,14 @@ use std::{
     sync::Arc,
 };
 
-use reth_node_api::{EngineTypes, FullNodeComponents};
+use reth_network::NetworkPrimitives;
+use reth_node_api::{BlockBody, EngineTypes, FullNodeComponents};
 use reth_node_core::{
     dirs::{ChainPath, DataDirPath},
     node_config::NodeConfig,
 };
 use reth_payload_builder::PayloadBuilderHandle;
-use reth_provider::ChainSpecProvider;
+use reth_provider::{BlockReader, ChainSpecProvider};
 use reth_rpc_api::EngineApiClient;
 use reth_rpc_builder::{auth::AuthServerHandle, RpcServerHandle};
 use reth_tasks::TaskExecutor;
@@ -69,6 +70,10 @@ where
     type Primitives = <N::Types as NodeTypes>::Primitives;
 
     type ChainSpec = <N::Types as NodeTypes>::ChainSpec;
+
+    type StateCommitment = <N::Types as NodeTypes>::StateCommitment;
+
+    type Storage = <N::Types as NodeTypes>::Storage;
 }
 
 impl<N, C, AO> NodeTypesWithEngine for AnyNode<N, C, AO>
@@ -205,4 +210,28 @@ impl<Node: FullNodeComponents, AddOns: NodeAddOns<Node>> DerefMut for FullNode<N
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.add_ons_handle
     }
+}
+
+/// This is a type alias to make type bounds simpler, when we have a [`NetworkPrimitives`] and need
+/// a [`BlockReader`] whose associated types match the [`NetworkPrimitives`] associated types.
+pub trait BlockReaderFor<N: NetworkPrimitives>:
+    BlockReader<
+    Block = N::Block,
+    Header = N::BlockHeader,
+    Transaction = <N::BlockBody as BlockBody>::Transaction,
+    Receipt = N::Receipt,
+>
+{
+}
+
+impl<N, T> BlockReaderFor<N> for T
+where
+    N: NetworkPrimitives,
+    T: BlockReader<
+        Block = N::Block,
+        Header = N::BlockHeader,
+        Transaction = <N::BlockBody as BlockBody>::Transaction,
+        Receipt = N::Receipt,
+    >,
+{
 }

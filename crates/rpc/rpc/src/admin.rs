@@ -115,6 +115,7 @@ where
                 .get_final_paris_total_difficulty()
                 .is_some(),
             terminal_total_difficulty: self.chain_spec.fork(EthereumHardfork::Paris).ttd(),
+            deposit_contract_address: self.chain_spec.deposit_contract().map(|dc| dc.address),
             ..self.chain_spec.genesis().config.clone()
         };
 
@@ -165,13 +166,14 @@ where
             ip: enode.address,
             ports: Ports { discovery: enode.udp_port, listener: enode.tcp_port },
             listen_addr: enode.tcp_addr(),
+            #[allow(deprecated)]
             protocols: ProtocolInfo {
                 eth: Some(EthProtocolInfo {
                     network: status.eth_protocol_info.network,
-                    difficulty: status.eth_protocol_info.difficulty,
                     genesis: status.eth_protocol_info.genesis,
                     config,
                     head: status.eth_protocol_info.head,
+                    difficulty: None,
                 }),
                 snap: None,
             },

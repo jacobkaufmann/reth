@@ -88,6 +88,9 @@ pub trait Table: Send + Sync + Debug + 'static {
     /// The table's name.
     const NAME: &'static str;
 
+    /// Whether the table is also a `DUPSORT` table.
+    const DUPSORT: bool;
+
     /// Key element of `Table`.
     ///
     /// Sorting should be taken into account when encoding this.
@@ -95,6 +98,15 @@ pub trait Table: Send + Sync + Debug + 'static {
 
     /// Value element of `Table`.
     type Value: Value;
+}
+
+/// Trait that provides object-safe access to the table's metadata.
+pub trait TableInfo: Send + Sync + Debug + 'static {
+    /// The table's name.
+    fn name(&self) -> &'static str;
+
+    /// Whether the table is a `DUPSORT` table.
+    fn is_dupsort(&self) -> bool;
 }
 
 /// Tuple with `T::Key` and `T::Value`.

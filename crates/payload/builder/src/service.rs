@@ -7,17 +7,20 @@ use crate::{
     metrics::PayloadBuilderServiceMetrics, traits::PayloadJobGenerator, KeepPayloadJobAlive,
     PayloadJob,
 };
+use alloy_consensus::BlockHeader;
 use alloy_rpc_types::engine::PayloadId;
 use futures_util::{future::FutureExt, Stream, StreamExt};
-use reth_payload_primitives::{
-    BuiltPayload, Events, PayloadBuilder, PayloadBuilderAttributes, PayloadBuilderError,
-    PayloadEvents, PayloadKind, PayloadTypes,
+use reth_chain_state::CanonStateNotification;
+use reth_payload_builder_primitives::{
+    Events, PayloadBuilder, PayloadBuilderError, PayloadEvents, PayloadStoreExt,
 };
-use reth_provider::CanonStateNotification;
+use reth_payload_primitives::{BuiltPayload, PayloadBuilderAttributes, PayloadKind, PayloadTypes};
+use reth_primitives_traits::NodePrimitives;
 use std::{
     fmt,
     future::Future,
     pin::Pin,
+    sync::Arc,
     task::{Context, Poll},
 };
 use tokio::sync::{
@@ -30,12 +33,13 @@ use tracing::{debug, info, trace, warn};
 type PayloadFuture<P> = Pin<Box<dyn Future<Output = Result<P, PayloadBuilderError>> + Send + Sync>>;
 
 /// A communication channel to the [`PayloadBuilderService`] that can retrieve payloads.
+///
+/// This type is intended to be used to retrieve payloads from the service (e.g. from the engine
+/// API).
 #[derive(Debug)]
 pub struct PayloadStore<T: PayloadTypes> {
-    inner: PayloadBuilderHandle<T>,
+    inner: Arc<dyn PayloadStoreExt<T>>,
 }
-
-// === impl PayloadStore ===
 
 impl<T> PayloadStore<T>
 where
@@ -82,12 +86,16 @@ where
     }
 }
 
-impl<T> Clone for PayloadStore<T>
+impl<T> PayloadStore<T>
 where
     T: PayloadTypes,
 {
-    fn clone(&self) -> Self {
-        Self { inner: self.inner.clone() }
+    /// Create a new instance
+    pub fn new<P>(inner: P) -> Self
+    where
+        P: PayloadStoreExt<T> + 'static,
+    {
+        Self { inner: Arc::new(inner) }
     }
 }
 
@@ -96,7 +104,7 @@ where
     T: PayloadTypes,
 {
     fn from(inner: PayloadBuilderHandle<T>) -> Self {
-        Self { inner }
+        Self::new(inner)
     }
 }
 
@@ -156,6 +164,18 @@ where
         let _ = self.to_service.send(PayloadServiceCommand::Subscribe(tx));
         Ok(PayloadEvents { receiver: rx.await? })
     }
+
+    /// Returns the payload attributes associated with the given identifier.
+    ///
+    /// Note: this returns the attributes of the payload and does not resolve the job.
+    async fn payload_attributes(
+        &self,
+        id: PayloadId,
+    ) -> Option<Result<T::PayloadBuilderAttributes, PayloadBuilderError>> {
+        let (tx, rx) = oneshot::channel();
+        self.to_service.send(PayloadServiceCommand::PayloadAttributes(id, tx)).ok()?;
+        rx.await.ok()?
+    }
 }
 
 impl<T> PayloadBuilderHandle<T>
@@ -168,18 +188,6 @@ where
     /// building flow See [`PayloadBuilderService::poll`] for implementation details.
     pub const fn new(to_service: mpsc::UnboundedSender<PayloadServiceCommand<T>>) -> Self {
         Self { to_service }
-    }
-
-    /// Returns the payload attributes associated with the given identifier.
-    ///
-    /// Note: this returns the attributes of the payload and does not resolve the job.
-    async fn payload_attributes(
-        &self,
-        id: PayloadId,
-    ) -> Option<Result<T::PayloadBuilderAttributes, PayloadBuilderError>> {
-        let (tx, rx) = oneshot::channel();
-        self.to_service.send(PayloadServiceCommand::PayloadAttributes(id, tx)).ok()?;
-        rx.await.ok()?
     }
 }
 
@@ -277,7 +285,7 @@ where
             .find(|(_, job_id)| *job_id == id)
             .map(|(j, _)| j.best_payload().map(|p| p.into()));
         if let Some(Ok(ref best)) = res {
-            self.metrics.set_best_revenue(best.block().number, f64::from(best.fees()));
+            self.metrics.set_best_revenue(best.block().number(), f64::from(best.fees()));
         }
 
         res
@@ -311,7 +319,7 @@ where
                 payload_events.send(Events::BuiltPayload(payload.clone().into())).ok();
 
                 resolved_metrics
-                    .set_resolved_revenue(payload.block().number, f64::from(payload.fees()));
+                    .set_resolved_revenue(payload.block().number(), f64::from(payload.fees()));
             }
             res.map(|p| p.into())
         };
@@ -346,12 +354,13 @@ where
     }
 }
 
-impl<Gen, St, T> Future for PayloadBuilderService<Gen, St, T>
+impl<Gen, St, T, N> Future for PayloadBuilderService<Gen, St, T>
 where
     T: PayloadTypes,
+    N: NodePrimitives,
     Gen: PayloadJobGenerator + Unpin + 'static,
     <Gen as PayloadJobGenerator>::Job: Unpin + 'static,
-    St: Stream<Item = CanonStateNotification> + Send + Unpin + 'static,
+    St: Stream<Item = CanonStateNotification<N>> + Send + Unpin + 'static,
     Gen::Job: PayloadJob<PayloadAttributes = T::PayloadBuilderAttributes>,
     <Gen::Job as PayloadJob>::BuiltPayload: Into<T::BuiltPayload>,
 {

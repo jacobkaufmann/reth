@@ -1,4 +1,5 @@
-use alloy_eips::merge::EPOCH_SLOTS;
+use alloy_consensus::{BlockHeader, Header};
+use alloy_eips::{merge::EPOCH_SLOTS, BlockNumHash};
 use alloy_primitives::{BlockNumber, B256};
 use alloy_rpc_types_engine::{
     ExecutionPayload, ExecutionPayloadSidecar, ForkchoiceState, PayloadStatus, PayloadStatusEnum,
@@ -10,20 +11,26 @@ use reth_blockchain_tree_api::{
     error::{BlockchainTreeError, CanonicalError, InsertBlockError, InsertBlockErrorKind},
     BlockStatus, BlockValidationKind, BlockchainTreeEngine, CanonicalOutcome, InsertPayloadOk,
 };
-use reth_engine_primitives::{EngineApiMessageVersion, EngineTypes, PayloadTypes};
+use reth_engine_primitives::{
+    BeaconEngineMessage, BeaconOnNewPayloadError, EngineApiMessageVersion, EngineTypes,
+    ForkchoiceStateHash, ForkchoiceStateTracker, ForkchoiceStatus, OnForkChoiceUpdated,
+    PayloadTypes,
+};
 use reth_errors::{BlockValidationError, ProviderResult, RethError, RethResult};
 use reth_network_p2p::{
     sync::{NetworkSyncUpdater, SyncState},
-    BlockClient,
+    EthBlockClient,
 };
-use reth_node_types::NodeTypesWithEngine;
+use reth_node_types::{Block, BlockTy, HeaderTy, NodeTypesWithEngine};
 use reth_payload_builder::PayloadBuilderHandle;
-use reth_payload_primitives::{PayloadAttributes, PayloadBuilder, PayloadBuilderAttributes};
+use reth_payload_builder_primitives::PayloadBuilder;
+use reth_payload_primitives::{PayloadAttributes, PayloadBuilderAttributes};
 use reth_payload_validator::ExecutionPayloadValidator;
-use reth_primitives::{BlockNumHash, Head, Header, SealedBlock, SealedHeader};
+use reth_primitives::{Head, SealedBlock, SealedHeader};
 use reth_provider::{
-    providers::ProviderNodeTypes, BlockIdReader, BlockReader, BlockSource, CanonChainTracker,
-    ChainSpecProvider, ProviderError, StageCheckpointReader,
+    providers::{ProviderNodeTypes, TreeNodeTypes},
+    BlockIdReader, BlockReader, BlockSource, CanonChainTracker, ChainSpecProvider, ProviderError,
+    StageCheckpointReader,
 };
 use reth_stages_api::{ControlFlow, Pipeline, PipelineTarget, StageId};
 use reth_tasks::TaskSpawner;
@@ -41,14 +48,8 @@ use tokio::sync::{
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::*;
 
-mod message;
-pub use message::{BeaconEngineMessage, OnForkChoiceUpdated};
-
 mod error;
-pub use error::{
-    BeaconConsensusEngineError, BeaconEngineResult, BeaconForkChoiceUpdateError,
-    BeaconOnNewPayloadError,
-};
+pub use error::{BeaconConsensusEngineError, BeaconEngineResult, BeaconForkChoiceUpdateError};
 
 mod invalid_headers;
 pub use invalid_headers::InvalidHeaderCache;
@@ -58,9 +59,6 @@ pub use event::{BeaconConsensusEngineEvent, ConsensusEngineLiveSyncProgress};
 
 mod handle;
 pub use handle::BeaconConsensusEngineHandle;
-
-mod forkchoice;
-pub use forkchoice::{ForkchoiceStateHash, ForkchoiceStateTracker, ForkchoiceStatus};
 
 mod metrics;
 use metrics::EngineMetrics;
@@ -169,12 +167,14 @@ type PendingForkchoiceUpdate<PayloadAttributes> =
 /// # Panics
 ///
 /// If the future is polled more than once. Leads to undefined state.
+///
+/// Note: soon deprecated. See `reth_engine_service::EngineService`.
 #[must_use = "Future does nothing unless polled"]
 #[allow(missing_debug_implementations)]
 pub struct BeaconConsensusEngine<N, BT, Client>
 where
     N: EngineNodeTypes,
-    Client: BlockClient,
+    Client: EthBlockClient,
     BT: BlockchainTreeEngine
         + BlockReader
         + BlockIdReader
@@ -229,15 +229,15 @@ where
 
 impl<N, BT, Client> BeaconConsensusEngine<N, BT, Client>
 where
-    N: EngineNodeTypes,
+    N: TreeNodeTypes,
     BT: BlockchainTreeEngine
-        + BlockReader
+        + BlockReader<Block = BlockTy<N>, Header = HeaderTy<N>>
         + BlockIdReader
-        + CanonChainTracker
+        + CanonChainTracker<Header = HeaderTy<N>>
         + StageCheckpointReader
         + ChainSpecProvider<ChainSpec = N::ChainSpec>
         + 'static,
-    Client: BlockClient + 'static,
+    Client: EthBlockClient + 'static,
 {
     /// Create a new instance of the [`BeaconConsensusEngine`].
     #[allow(clippy::too_many_arguments)]
@@ -299,7 +299,7 @@ where
         hooks: EngineHooks,
     ) -> RethResult<(Self, BeaconConsensusEngineHandle<N::Engine>)> {
         let event_sender = EventSender::default();
-        let handle = BeaconConsensusEngineHandle::new(to_engine, event_sender.clone());
+        let handle = BeaconConsensusEngineHandle::new(to_engine);
         let sync = EngineSyncController::new(
             pipeline,
             client,
@@ -757,14 +757,14 @@ where
         // iterate over ancestors in the invalid cache
         // until we encounter the first valid ancestor
         let mut current_hash = parent_hash;
-        let mut current_header = self.invalid_headers.get(&current_hash);
-        while let Some(header) = current_header {
-            current_hash = header.parent_hash;
-            current_header = self.invalid_headers.get(&current_hash);
+        let mut current_block = self.invalid_headers.get(&current_hash);
+        while let Some(block) = current_block {
+            current_hash = block.parent;
+            current_block = self.invalid_headers.get(&current_hash);
 
             // If current_header is None, then the current_hash does not have an invalid
             // ancestor in the cache, check its presence in blockchain tree
-            if current_header.is_none() &&
+            if current_block.is_none() &&
                 self.blockchain.find_block_by_hash(current_hash, BlockSource::Any)?.is_some()
             {
                 return Ok(Some(current_hash))
@@ -803,13 +803,13 @@ where
         head: B256,
     ) -> ProviderResult<Option<PayloadStatus>> {
         // check if the check hash was previously marked as invalid
-        let Some(header) = self.invalid_headers.get(&check) else { return Ok(None) };
+        let Some(block) = self.invalid_headers.get(&check) else { return Ok(None) };
 
         // populate the latest valid hash field
-        let status = self.prepare_invalid_response(header.parent_hash)?;
+        let status = self.prepare_invalid_response(block.parent)?;
 
         // insert the head block into the invalid header cache
-        self.invalid_headers.insert_with_invalid_ancestor(head, header);
+        self.invalid_headers.insert_with_invalid_ancestor(head, block);
 
         Ok(Some(status))
     }
@@ -818,10 +818,10 @@ where
     /// to a forkchoice update.
     fn check_invalid_ancestor(&mut self, head: B256) -> ProviderResult<Option<PayloadStatus>> {
         // check if the head was previously marked as invalid
-        let Some(header) = self.invalid_headers.get(&head) else { return Ok(None) };
+        let Some(block) = self.invalid_headers.get(&head) else { return Ok(None) };
 
         // populate the latest valid hash field
-        Ok(Some(self.prepare_invalid_response(header.parent_hash)?))
+        Ok(Some(self.prepare_invalid_response(block.parent)?))
     }
 
     /// Record latency metrics for one call to make a block canonical
@@ -949,7 +949,7 @@ where
                 .blockchain
                 .find_block_by_hash(safe_block_hash, BlockSource::Any)?
                 .ok_or(ProviderError::UnknownBlockHash(safe_block_hash))?;
-            self.blockchain.set_safe(SealedHeader::new(safe.header, safe_block_hash));
+            self.blockchain.set_safe(SealedHeader::new(safe.split().0, safe_block_hash));
         }
         Ok(())
     }
@@ -969,9 +969,9 @@ where
                 .blockchain
                 .find_block_by_hash(finalized_block_hash, BlockSource::Any)?
                 .ok_or(ProviderError::UnknownBlockHash(finalized_block_hash))?;
-            self.blockchain.finalize_block(finalized.number)?;
+            self.blockchain.finalize_block(finalized.header().number())?;
             self.blockchain
-                .set_finalized(SealedHeader::new(finalized.header, finalized_block_hash));
+                .set_finalized(SealedHeader::new(finalized.split().0, finalized_block_hash));
         }
         Ok(())
     }
@@ -1451,7 +1451,7 @@ where
     fn on_pipeline_outcome(&mut self, ctrl: ControlFlow) -> RethResult<()> {
         // Pipeline unwound, memorize the invalid block and wait for CL for next sync target.
         if let ControlFlow::Unwind { bad_block, .. } = ctrl {
-            warn!(target: "consensus::engine", invalid_hash=?bad_block.hash(), invalid_number=?bad_block.number, "Bad block detected in unwind");
+            warn!(target: "consensus::engine", invalid_num_hash=?bad_block.block, "Bad block detected in unwind");
             // update the `invalid_headers` cache with the new invalid header
             self.invalid_headers.insert(*bad_block);
             return Ok(())
@@ -1670,7 +1670,7 @@ where
                             self.latest_valid_hash_for_invalid_payload(block.parent_hash)?
                         };
                         // keep track of the invalid header
-                        self.invalid_headers.insert(block.header);
+                        self.invalid_headers.insert(block.header.block_with_parent());
                         PayloadStatus::new(
                             PayloadStatusEnum::Invalid { validation_error: error.to_string() },
                             latest_valid_hash,
@@ -1779,7 +1779,7 @@ where
                             let (block, err) = err.split();
                             warn!(target: "consensus::engine", invalid_number=?block.number, invalid_hash=?block.hash(), %err, "Marking block as invalid");
 
-                            self.invalid_headers.insert(block.header);
+                            self.invalid_headers.insert(block.header.block_with_parent());
                         }
                     }
                 }
@@ -1798,12 +1798,12 @@ where
 /// receiver and forwarding them to the blockchain tree.
 impl<N, BT, Client> Future for BeaconConsensusEngine<N, BT, Client>
 where
-    N: EngineNodeTypes,
-    Client: BlockClient + 'static,
+    N: TreeNodeTypes,
+    Client: EthBlockClient + 'static,
     BT: BlockchainTreeEngine
-        + BlockReader
+        + BlockReader<Block = BlockTy<N>, Header = HeaderTy<N>>
         + BlockIdReader
-        + CanonChainTracker
+        + CanonChainTracker<Header = HeaderTy<N>>
         + StageCheckpointReader
         + ChainSpecProvider<ChainSpec = N::ChainSpec>
         + Unpin
@@ -1994,7 +1994,9 @@ mod tests {
     use alloy_rpc_types_engine::{ForkchoiceState, ForkchoiceUpdated, PayloadStatus};
     use assert_matches::assert_matches;
     use reth_chainspec::{ChainSpecBuilder, MAINNET};
-    use reth_provider::{BlockWriter, ProviderFactory};
+    use reth_node_types::FullNodePrimitives;
+    use reth_primitives::BlockExt;
+    use reth_provider::{BlockWriter, ProviderFactory, StorageLocation};
     use reth_rpc_types_compat::engine::payload::block_to_payload_v1;
     use reth_stages::{ExecOutput, PipelineError, StageError};
     use reth_stages_api::StageCheckpoint;
@@ -2030,7 +2032,7 @@ mod tests {
             .await;
         assert_matches!(
             res.await,
-            Ok(Err(BeaconConsensusEngineError::Pipeline(n))) if matches!(*n.as_ref(),PipelineError::Stage(StageError::ChannelClosed))
+            Ok(Err(BeaconConsensusEngineError::Pipeline(n))) if matches!(*n.as_ref(), PipelineError::Stage(StageError::ChannelClosed))
         );
     }
 
@@ -2061,7 +2063,7 @@ mod tests {
         // consensus engine is still idle because no FCUs were received
         let _ = env
             .send_new_payload(
-                block_to_payload_v1(SealedBlock::default()),
+                block_to_payload_v1(SealedBlock::<_>::default()),
                 ExecutionPayloadSidecar::none(),
             )
             .await;
@@ -2136,7 +2138,7 @@ mod tests {
 
         assert_matches!(
             rx.await,
-            Ok(Err(BeaconConsensusEngineError::Pipeline(n)))  if matches!(*n.as_ref(),PipelineError::Stage(StageError::ChannelClosed))
+            Ok(Err(BeaconConsensusEngineError::Pipeline(n)))  if matches!(*n.as_ref(), PipelineError::Stage(StageError::ChannelClosed))
         );
     }
 
@@ -2172,7 +2174,15 @@ mod tests {
         assert_matches!(rx.await, Ok(Ok(())));
     }
 
-    fn insert_blocks<'a, N: ProviderNodeTypes>(
+    fn insert_blocks<
+        'a,
+        N: ProviderNodeTypes<
+            Primitives: FullNodePrimitives<
+                BlockBody = reth_primitives::BlockBody,
+                BlockHeader = reth_primitives::Header,
+            >,
+        >,
+    >(
         provider_factory: ProviderFactory<N>,
         mut blocks: impl Iterator<Item = &'a SealedBlock>,
     ) {
@@ -2182,6 +2192,7 @@ mod tests {
                 provider
                     .insert_block(
                         b.clone().try_seal_with_senders().expect("invalid tx signature in block"),
+                        StorageLocation::Database,
                     )
                     .map(drop)
             })
@@ -2449,7 +2460,7 @@ mod tests {
                     .chain(MAINNET.chain)
                     .genesis(MAINNET.genesis.clone())
                     .london_activated()
-                    .paris_at_ttd(U256::from(3))
+                    .paris_at_ttd(U256::from(3), 3)
                     .build(),
             );
 
@@ -2763,8 +2774,7 @@ mod tests {
                 .with_real_consensus()
                 .build();
 
-            let genesis =
-                SealedBlock { header: chain_spec.sealed_genesis_header(), ..Default::default() };
+            let genesis = SealedBlock::new(chain_spec.sealed_genesis_header(), Default::default());
             let block1 = random_block(
                 &mut rng,
                 1,
@@ -2876,7 +2886,7 @@ mod tests {
             block1.header.set_difficulty(
                 MAINNET.fork(EthereumHardfork::Paris).ttd().unwrap() - U256::from(1),
             );
-            block1 = block1.unseal().seal_slow();
+            block1 = block1.unseal::<reth_primitives::Block>().seal_slow();
             let (block2, exec_result2) = data.blocks[1].clone();
             let mut block2 = block2.unseal().block;
             block2.body.withdrawals = None;

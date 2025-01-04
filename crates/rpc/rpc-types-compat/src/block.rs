@@ -1,13 +1,13 @@
 //! Compatibility functions for rpc `Block` type.
 
+use alloy_consensus::{BlockHeader, Sealable, Sealed};
+use alloy_eips::eip4895::Withdrawals;
 use alloy_primitives::{B256, U256};
-use alloy_rlp::Encodable;
-use alloy_rpc_types::{
-    Block, BlockError, BlockTransactions, BlockTransactionsKind, Header, TransactionInfo,
+use alloy_rpc_types_eth::{
+    Block, BlockTransactions, BlockTransactionsKind, Header, TransactionInfo,
 };
-use reth_primitives::{
-    Block as PrimitiveBlock, BlockWithSenders, Header as PrimitiveHeader, SealedHeader, Withdrawals,
-};
+use reth_primitives::{transaction::SignedTransactionIntoRecoveredExt, BlockWithSenders};
+use reth_primitives_traits::{Block as BlockTrait, BlockBody, SignedTransaction};
 
 use crate::{transaction::from_recovered_with_block_context, TransactionCompat};
 
@@ -15,20 +15,22 @@ use crate::{transaction::from_recovered_with_block_context, TransactionCompat};
 /// [`BlockTransactionsKind`]
 ///
 /// If a `block_hash` is provided, then this is used, otherwise the block hash is computed.
-pub fn from_block<T: TransactionCompat>(
-    block: BlockWithSenders,
-    total_difficulty: U256,
+#[expect(clippy::type_complexity)]
+pub fn from_block<T, B>(
+    block: BlockWithSenders<B>,
     kind: BlockTransactionsKind,
     block_hash: Option<B256>,
     tx_resp_builder: &T,
-) -> Result<Block<T::Transaction>, BlockError> {
+) -> Result<Block<T::Transaction, Header<B::Header>>, T::Error>
+where
+    T: TransactionCompat<<<B as BlockTrait>::Body as BlockBody>::Transaction>,
+    B: BlockTrait,
+{
     match kind {
         BlockTransactionsKind::Hashes => {
-            Ok(from_block_with_tx_hashes::<T::Transaction>(block, total_difficulty, block_hash))
+            Ok(from_block_with_tx_hashes::<T::Transaction, B>(block, block_hash))
         }
-        BlockTransactionsKind::Full => {
-            from_block_full::<T>(block, total_difficulty, block_hash, tx_resp_builder)
-        }
+        BlockTransactionsKind::Full => from_block_full::<T, B>(block, block_hash, tx_resp_builder),
     }
 }
 
@@ -37,19 +39,20 @@ pub fn from_block<T: TransactionCompat>(
 ///
 /// This will populate the `transactions` field with only the hashes of the transactions in the
 /// block: [`BlockTransactions::Hashes`]
-pub fn from_block_with_tx_hashes<T>(
-    block: BlockWithSenders,
-    total_difficulty: U256,
+pub fn from_block_with_tx_hashes<T, B>(
+    block: BlockWithSenders<B>,
     block_hash: Option<B256>,
-) -> Block<T> {
-    let block_hash = block_hash.unwrap_or_else(|| block.header.hash_slow());
-    let transactions = block.body.transactions().map(|tx| tx.hash()).collect();
+) -> Block<T, Header<B::Header>>
+where
+    B: BlockTrait,
+{
+    let block_hash = block_hash.unwrap_or_else(|| block.header().hash_slow());
+    let transactions = block.body().transactions().iter().map(|tx| *tx.tx_hash()).collect();
 
     from_block_with_transactions(
         block.length(),
         block_hash,
         block.block,
-        total_difficulty,
         BlockTransactions::Hashes(transactions),
     )
 }
@@ -59,25 +62,29 @@ pub fn from_block_with_tx_hashes<T>(
 ///
 /// This will populate the `transactions` field with the _full_
 /// [`TransactionCompat::Transaction`] objects: [`BlockTransactions::Full`]
-pub fn from_block_full<T: TransactionCompat>(
-    mut block: BlockWithSenders,
-    total_difficulty: U256,
+#[expect(clippy::type_complexity)]
+pub fn from_block_full<T, B>(
+    block: BlockWithSenders<B>,
     block_hash: Option<B256>,
     tx_resp_builder: &T,
-) -> Result<Block<T::Transaction>, BlockError> {
-    let block_hash = block_hash.unwrap_or_else(|| block.block.header.hash_slow());
-    let block_number = block.block.number;
-    let base_fee_per_gas = block.block.base_fee_per_gas;
+) -> Result<Block<T::Transaction, Header<B::Header>>, T::Error>
+where
+    T: TransactionCompat<<<B as BlockTrait>::Body as BlockBody>::Transaction>,
+    B: BlockTrait,
+{
+    let block_hash = block_hash.unwrap_or_else(|| block.block.header().hash_slow());
+    let block_number = block.block.header().number();
+    let base_fee_per_gas = block.block.header().base_fee_per_gas();
 
     // NOTE: we can safely remove the body here because not needed to finalize the `Block` in
     // `from_block_with_transactions`, however we need to compute the length before
     let block_length = block.block.length();
-    let transactions = std::mem::take(&mut block.block.body.transactions);
+    let transactions = block.block.body().transactions().to_vec();
     let transactions_with_senders = transactions.into_iter().zip(block.senders);
     let transactions = transactions_with_senders
         .enumerate()
         .map(|(idx, (tx, sender))| {
-            let tx_hash = tx.hash();
+            let tx_hash = *tx.tx_hash();
             let signed_tx_ec_recovered = tx.with_signer(sender);
             let tx_info = TransactionInfo {
                 hash: Some(tx_hash),
@@ -87,110 +94,47 @@ pub fn from_block_full<T: TransactionCompat>(
                 index: Some(idx as u64),
             };
 
-            from_recovered_with_block_context::<T>(signed_tx_ec_recovered, tx_info, tx_resp_builder)
+            from_recovered_with_block_context::<_, T>(
+                signed_tx_ec_recovered,
+                tx_info,
+                tx_resp_builder,
+            )
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, T::Error>>()?;
 
     Ok(from_block_with_transactions(
         block_length,
         block_hash,
         block.block,
-        total_difficulty,
         BlockTransactions::Full(transactions),
     ))
 }
 
-/// Converts from a [`reth_primitives::SealedHeader`] to a [`alloy-rpc-types::Header`]
-///
-/// # Note
-///
-/// This does not set the `totalDifficulty` field.
-pub fn from_primitive_with_hash(primitive_header: reth_primitives::SealedHeader) -> Header {
-    let (header, hash) = primitive_header.split();
-    let PrimitiveHeader {
-        parent_hash,
-        ommers_hash,
-        beneficiary,
-        state_root,
-        transactions_root,
-        receipts_root,
-        logs_bloom,
-        difficulty,
-        number,
-        gas_limit,
-        gas_used,
-        timestamp,
-        mix_hash,
-        nonce,
-        base_fee_per_gas,
-        extra_data,
-        withdrawals_root,
-        blob_gas_used,
-        excess_blob_gas,
-        parent_beacon_block_root,
-        requests_hash,
-    } = header;
-
-    Header {
-        hash,
-        parent_hash,
-        uncles_hash: ommers_hash,
-        miner: beneficiary,
-        state_root,
-        transactions_root,
-        receipts_root,
-        withdrawals_root,
-        number,
-        gas_used,
-        gas_limit,
-        extra_data,
-        logs_bloom,
-        timestamp,
-        difficulty,
-        mix_hash: Some(mix_hash),
-        nonce: Some(nonce),
-        base_fee_per_gas,
-        blob_gas_used,
-        excess_blob_gas,
-        parent_beacon_block_root,
-        total_difficulty: None,
-        requests_hash,
-    }
-}
-
 #[inline]
-fn from_block_with_transactions<T>(
+fn from_block_with_transactions<T, B: BlockTrait>(
     block_length: usize,
     block_hash: B256,
-    block: PrimitiveBlock,
-    total_difficulty: U256,
+    block: B,
     transactions: BlockTransactions<T>,
-) -> Block<T> {
-    let uncles = block.body.ommers.into_iter().map(|h| h.hash_slow()).collect();
-    let mut header = from_primitive_with_hash(SealedHeader::new(block.header, block_hash));
-    header.total_difficulty = Some(total_difficulty);
-
-    let withdrawals = header
-        .withdrawals_root
+) -> Block<T, Header<B::Header>> {
+    let withdrawals = block
+        .header()
+        .withdrawals_root()
         .is_some()
-        .then(|| block.body.withdrawals.map(Withdrawals::into_inner))
+        .then(|| block.body().withdrawals().cloned().map(Withdrawals::into_inner).map(Into::into))
         .flatten();
 
-    Block { header, uncles, transactions, size: Some(U256::from(block_length)), withdrawals }
-}
+    let uncles = block
+        .body()
+        .ommers()
+        .map(|o| o.iter().map(|h| h.hash_slow()).collect())
+        .unwrap_or_default();
+    let (header, _) = block.split();
+    let header = Header::from_consensus(
+        Sealed::new_unchecked(header, block_hash),
+        None,
+        Some(U256::from(block_length)),
+    );
 
-/// Build an RPC block response representing
-/// an Uncle from its header.
-pub fn uncle_block_from_header<T>(header: PrimitiveHeader) -> Block<T> {
-    let hash = header.hash_slow();
-    let uncle_block = PrimitiveBlock { header, ..Default::default() };
-    let size = Some(U256::from(uncle_block.length()));
-    let rpc_header = from_primitive_with_hash(SealedHeader::new(uncle_block.header, hash));
-    Block {
-        uncles: vec![],
-        header: rpc_header,
-        transactions: BlockTransactions::Uncle,
-        withdrawals: None,
-        size,
-    }
+    Block { header, uncles, transactions, withdrawals }
 }

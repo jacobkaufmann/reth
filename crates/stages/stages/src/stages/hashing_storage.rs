@@ -353,16 +353,13 @@ mod tests {
                 // Insert last progress data
                 let block_number = progress.number;
                 self.db.commit(|tx| {
-                    progress.body.transactions.iter().try_for_each(
+                    progress.body().transactions.iter().try_for_each(
                         |transaction| -> Result<(), reth_db::DatabaseError> {
                             tx.put::<tables::TransactionHashNumbers>(
                                 transaction.hash(),
                                 next_tx_num,
                             )?;
-                            tx.put::<tables::Transactions>(
-                                next_tx_num,
-                                transaction.clone().into(),
-                            )?;
+                            tx.put::<tables::Transactions>(next_tx_num, transaction.clone())?;
 
                             let (addr, _) =
                                 accounts.get_mut(rng.gen::<usize>() % n_accounts as usize).unwrap();
@@ -401,7 +398,7 @@ mod tests {
 
                     let body = StoredBlockBodyIndices {
                         first_tx_num,
-                        tx_count: progress.body.transactions.len() as u64,
+                        tx_count: progress.body().transactions.len() as u64,
                     };
 
                     first_tx_num = next_tx_num;

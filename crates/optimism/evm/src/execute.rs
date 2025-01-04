@@ -1,35 +1,37 @@
 //! Optimism block execution strategy.
 
-use crate::{l1::ensure_create2_deployer, OptimismBlockExecutionError, OptimismEvmConfig};
+use crate::{l1::ensure_create2_deployer, OpBlockExecutionError, OpEvmConfig};
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
-use alloy_consensus::Transaction as _;
+use alloy_consensus::{Eip658Value, Header, Receipt, Transaction as _};
 use alloy_eips::eip7685::Requests;
 use core::fmt::Display;
-use op_alloy_consensus::DepositTransaction;
+use op_alloy_consensus::{OpDepositReceipt, OpTxType};
 use reth_chainspec::EthereumHardforks;
 use reth_consensus::ConsensusError;
 use reth_evm::{
+    env::EvmEnv,
     execute::{
-        BasicBlockExecutorProvider, BlockExecutionError, BlockExecutionStrategy,
-        BlockExecutionStrategyFactory, BlockValidationError, ExecuteOutput, ProviderError,
+        balance_increment_state, BasicBlockExecutorProvider, BlockExecutionError,
+        BlockExecutionStrategy, BlockExecutionStrategyFactory, BlockValidationError, ExecuteOutput,
+        ProviderError,
     },
     state_change::post_block_balance_increments,
     system_calls::{OnStateHook, SystemCaller},
-    ConfigureEvm,
+    ConfigureEvm, TxEnvOverrides,
 };
 use reth_optimism_chainspec::OpChainSpec;
 use reth_optimism_consensus::validate_block_post_execution;
-use reth_optimism_forks::OptimismHardfork;
-use reth_primitives::{BlockWithSenders, Header, Receipt, TxType};
+use reth_optimism_forks::OpHardfork;
+use reth_optimism_primitives::{OpBlock, OpPrimitives, OpReceipt, OpTransactionSigned};
+use reth_primitives::BlockWithSenders;
+use reth_primitives_traits::SignedTransaction;
 use reth_revm::{Database, State};
-use revm_primitives::{
-    db::DatabaseCommit, BlockEnv, CfgEnvWithHandlerCfg, EnvWithHandlerCfg, ResultAndState, U256,
-};
+use revm_primitives::{db::DatabaseCommit, EnvWithHandlerCfg, ResultAndState};
 use tracing::trace;
 
 /// Factory for [`OpExecutionStrategy`].
 #[derive(Debug, Clone)]
-pub struct OpExecutionStrategyFactory<EvmConfig = OptimismEvmConfig> {
+pub struct OpExecutionStrategyFactory<EvmConfig = OpEvmConfig> {
     /// The chainspec
     chain_spec: Arc<OpChainSpec>,
     /// How to create an EVM.
@@ -39,7 +41,7 @@ pub struct OpExecutionStrategyFactory<EvmConfig = OptimismEvmConfig> {
 impl OpExecutionStrategyFactory {
     /// Creates a new default optimism executor strategy factory.
     pub fn optimism(chain_spec: Arc<OpChainSpec>) -> Self {
-        Self::new(chain_spec.clone(), OptimismEvmConfig::new(chain_spec))
+        Self::new(chain_spec.clone(), OpEvmConfig::new(chain_spec))
     }
 }
 
@@ -52,9 +54,14 @@ impl<EvmConfig> OpExecutionStrategyFactory<EvmConfig> {
 
 impl<EvmConfig> BlockExecutionStrategyFactory for OpExecutionStrategyFactory<EvmConfig>
 where
-    EvmConfig:
-        Clone + Unpin + Sync + Send + 'static + ConfigureEvm<Header = alloy_consensus::Header>,
+    EvmConfig: Clone
+        + Unpin
+        + Sync
+        + Send
+        + 'static
+        + ConfigureEvm<Header = alloy_consensus::Header, Transaction = OpTransactionSigned>,
 {
+    type Primitives = OpPrimitives;
     type Strategy<DB: Database<Error: Into<ProviderError> + Display>> =
         OpExecutionStrategy<DB, EvmConfig>;
 
@@ -78,6 +85,8 @@ where
     chain_spec: Arc<OpChainSpec>,
     /// How to create an EVM.
     evm_config: EvmConfig,
+    /// Optional overrides for the transactions environment.
+    tx_env_overrides: Option<Box<dyn TxEnvOverrides>>,
     /// Current state for block execution.
     state: State<DB>,
     /// Utility to call system smart contracts.
@@ -90,8 +99,8 @@ where
 {
     /// Creates a new [`OpExecutionStrategy`]
     pub fn new(state: State<DB>, chain_spec: Arc<OpChainSpec>, evm_config: EvmConfig) -> Self {
-        let system_caller = SystemCaller::new(evm_config.clone(), (*chain_spec).clone());
-        Self { state, chain_spec, evm_config, system_caller }
+        let system_caller = SystemCaller::new(evm_config.clone(), chain_spec.clone());
+        Self { state, chain_spec, evm_config, system_caller, tx_env_overrides: None }
     }
 }
 
@@ -103,33 +112,36 @@ where
     /// Configures a new evm configuration and block environment for the given block.
     ///
     /// Caution: this does not initialize the tx environment.
-    fn evm_env_for_block(&self, header: &Header, total_difficulty: U256) -> EnvWithHandlerCfg {
-        let mut cfg = CfgEnvWithHandlerCfg::new(Default::default(), Default::default());
-        let mut block_env = BlockEnv::default();
-        self.evm_config.fill_cfg_and_block_env(&mut cfg, &mut block_env, header, total_difficulty);
-
-        EnvWithHandlerCfg::new_with_cfg_env(cfg, block_env, Default::default())
+    fn evm_env_for_block(&self, header: &Header) -> EnvWithHandlerCfg {
+        let evm_env = self.evm_config.cfg_and_block_env(header);
+        let EvmEnv { cfg_env_with_handler_cfg, block_env } = evm_env;
+        EnvWithHandlerCfg::new_with_cfg_env(cfg_env_with_handler_cfg, block_env, Default::default())
     }
 }
 
-impl<DB, EvmConfig> BlockExecutionStrategy<DB> for OpExecutionStrategy<DB, EvmConfig>
+impl<DB, EvmConfig> BlockExecutionStrategy for OpExecutionStrategy<DB, EvmConfig>
 where
     DB: Database<Error: Into<ProviderError> + Display>,
-    EvmConfig: ConfigureEvm<Header = alloy_consensus::Header>,
+    EvmConfig: ConfigureEvm<Header = alloy_consensus::Header, Transaction = OpTransactionSigned>,
 {
+    type DB = DB;
+    type Primitives = OpPrimitives;
     type Error = BlockExecutionError;
+
+    fn init(&mut self, tx_env_overrides: Box<dyn TxEnvOverrides>) {
+        self.tx_env_overrides = Some(tx_env_overrides);
+    }
 
     fn apply_pre_execution_changes(
         &mut self,
-        block: &BlockWithSenders,
-        total_difficulty: U256,
+        block: &BlockWithSenders<OpBlock>,
     ) -> Result<(), Self::Error> {
         // Set state clear flag if the block is after the Spurious Dragon hardfork.
         let state_clear_flag =
             (*self.chain_spec).is_spurious_dragon_active_at_block(block.header.number);
         self.state.set_state_clear_flag(state_clear_flag);
 
-        let env = self.evm_env_for_block(&block.header, total_difficulty);
+        let env = self.evm_env_for_block(&block.header);
         let mut evm = self.evm_config.evm_with_env(&mut self.state, env);
 
         self.system_caller.apply_beacon_root_contract_call(
@@ -144,21 +156,20 @@ where
         // so we can safely assume that this will always be triggered upon the transition and that
         // the above check for empty blocks will never be hit on OP chains.
         ensure_create2_deployer(self.chain_spec.clone(), block.timestamp, evm.db_mut())
-            .map_err(|_| OptimismBlockExecutionError::ForceCreate2DeployerFail)?;
+            .map_err(|_| OpBlockExecutionError::ForceCreate2DeployerFail)?;
 
         Ok(())
     }
 
     fn execute_transactions(
         &mut self,
-        block: &BlockWithSenders,
-        total_difficulty: U256,
-    ) -> Result<ExecuteOutput, Self::Error> {
-        let env = self.evm_env_for_block(&block.header, total_difficulty);
+        block: &BlockWithSenders<OpBlock>,
+    ) -> Result<ExecuteOutput<OpReceipt>, Self::Error> {
+        let env = self.evm_env_for_block(&block.header);
         let mut evm = self.evm_config.evm_with_env(&mut self.state, env);
 
         let is_regolith =
-            self.chain_spec.fork(OptimismHardfork::Regolith).active_at_timestamp(block.timestamp);
+            self.chain_spec.fork(OpHardfork::Regolith).active_at_timestamp(block.timestamp);
 
         let mut cumulative_gas_used = 0;
         let mut receipts = Vec::with_capacity(block.body.transactions.len());
@@ -167,18 +178,13 @@ where
             // must be no greater than the block’s gasLimit.
             let block_available_gas = block.header.gas_limit - cumulative_gas_used;
             if transaction.gas_limit() > block_available_gas &&
-                (is_regolith || !transaction.is_system_transaction())
+                (is_regolith || !transaction.is_deposit())
             {
                 return Err(BlockValidationError::TransactionGasLimitMoreThanAvailableBlockGas {
                     transaction_gas_limit: transaction.gas_limit(),
                     block_available_gas,
                 }
                 .into())
-            }
-
-            // An optimism block should never contain blob transactions.
-            if matches!(transaction.tx_type(), TxType::Eip4844) {
-                return Err(OptimismBlockExecutionError::BlobTransactionRejected.into())
             }
 
             // Cache the depositor account prior to the state transition for the deposit nonce.
@@ -193,9 +199,13 @@ where
                         .map(|acc| acc.account_info().unwrap_or_default())
                 })
                 .transpose()
-                .map_err(|_| OptimismBlockExecutionError::AccountLoadFailed(*sender))?;
+                .map_err(|_| OpBlockExecutionError::AccountLoadFailed(*sender))?;
 
             self.evm_config.fill_tx_env(evm.tx_mut(), transaction, *sender);
+
+            if let Some(tx_env_overrides) = &mut self.tx_env_overrides {
+                tx_env_overrides.apply(evm.tx_mut());
+            }
 
             // Execute transaction.
             let result_and_state = evm.transact().map_err(move |err| {
@@ -212,29 +222,39 @@ where
                 ?transaction,
                 "Executed transaction"
             );
-            self.system_caller.on_state(&result_and_state);
+            self.system_caller.on_state(&result_and_state.state);
             let ResultAndState { result, state } = result_and_state;
             evm.db_mut().commit(state);
 
             // append gas used
             cumulative_gas_used += result.gas_used();
 
-            // Push transaction changeset and calculate header bloom filter for receipt.
-            receipts.push(Receipt {
-                tx_type: transaction.tx_type(),
+            let receipt = Receipt {
                 // Success flag was added in `EIP-658: Embedding transaction status code in
                 // receipts`.
-                success: result.is_success(),
+                status: Eip658Value::Eip658(result.is_success()),
                 cumulative_gas_used,
                 logs: result.into_logs(),
-                deposit_nonce: depositor.map(|account| account.nonce),
-                // The deposit receipt version was introduced in Canyon to indicate an update to how
-                // receipt hashes should be computed when set. The state transition process ensures
-                // this is only set for post-Canyon deposit transactions.
-                deposit_receipt_version: (transaction.is_deposit() &&
-                    self.chain_spec
-                        .is_fork_active_at_timestamp(OptimismHardfork::Canyon, block.timestamp))
-                .then_some(1),
+            };
+
+            // Push transaction changeset and calculate header bloom filter for receipt.
+            receipts.push(match transaction.tx_type() {
+                OpTxType::Legacy => OpReceipt::Legacy(receipt),
+                OpTxType::Eip2930 => OpReceipt::Eip2930(receipt),
+                OpTxType::Eip1559 => OpReceipt::Eip1559(receipt),
+                OpTxType::Eip7702 => OpReceipt::Eip7702(receipt),
+                OpTxType::Deposit => OpReceipt::Deposit(OpDepositReceipt {
+                    inner: receipt,
+                    deposit_nonce: depositor.map(|account| account.nonce),
+                    // The deposit receipt version was introduced in Canyon to indicate an update to
+                    // how receipt hashes should be computed when set. The state
+                    // transition process ensures this is only set for
+                    // post-Canyon deposit transactions.
+                    deposit_receipt_version: (transaction.is_deposit() &&
+                        self.chain_spec
+                            .is_fork_active_at_timestamp(OpHardfork::Canyon, block.timestamp))
+                    .then_some(1),
+                }),
             });
         }
 
@@ -243,16 +263,18 @@ where
 
     fn apply_post_execution_changes(
         &mut self,
-        block: &BlockWithSenders,
-        total_difficulty: U256,
-        _receipts: &[Receipt],
+        block: &BlockWithSenders<OpBlock>,
+        _receipts: &[OpReceipt],
     ) -> Result<Requests, Self::Error> {
         let balance_increments =
-            post_block_balance_increments(&self.chain_spec.clone(), block, total_difficulty);
+            post_block_balance_increments(&self.chain_spec.clone(), &block.block);
         // increment balances
         self.state
-            .increment_balances(balance_increments)
+            .increment_balances(balance_increments.clone())
             .map_err(|_| BlockValidationError::IncrementBalanceFailed)?;
+        // call state hook with changes due to balance increments.
+        let balance_state = balance_increment_state(&balance_increments, &mut self.state)?;
+        self.system_caller.on_state(&balance_state);
 
         Ok(Requests::default())
     }
@@ -271,8 +293,8 @@ where
 
     fn validate_block_post_execution(
         &self,
-        block: &BlockWithSenders,
-        receipts: &[Receipt],
+        block: &BlockWithSenders<OpBlock>,
+        receipts: &[OpReceipt],
         _requests: &Requests,
     ) -> Result<(), ConsensusError> {
         validate_block_post_execution(block, &self.chain_spec.clone(), receipts)
@@ -297,12 +319,14 @@ mod tests {
     use super::*;
     use crate::OpChainSpec;
     use alloy_consensus::TxEip1559;
-    use alloy_primitives::{b256, Address, StorageKey, StorageValue};
-    use op_alloy_consensus::TxDeposit;
+    use alloy_primitives::{
+        b256, Address, PrimitiveSignature as Signature, StorageKey, StorageValue, U256,
+    };
+    use op_alloy_consensus::{OpTypedTransaction, TxDeposit};
     use reth_chainspec::MIN_TRANSACTION_GAS;
     use reth_evm::execute::{BasicBlockExecutorProvider, BatchExecutor, BlockExecutorProvider};
     use reth_optimism_chainspec::OpChainSpecBuilder;
-    use reth_primitives::{Account, Block, BlockBody, Signature, Transaction, TransactionSigned};
+    use reth_primitives::{Account, Block, BlockBody};
     use reth_revm::{
         database::StateProviderDatabase, test_utils::StateProviderTest, L1_BLOCK_CONTRACT,
     };
@@ -339,7 +363,7 @@ mod tests {
         chain_spec: Arc<OpChainSpec>,
     ) -> BasicBlockExecutorProvider<OpExecutionStrategyFactory> {
         let strategy_factory =
-            OpExecutionStrategyFactory::new(chain_spec.clone(), OptimismEvmConfig::new(chain_spec));
+            OpExecutionStrategyFactory::new(chain_spec.clone(), OpEvmConfig::new(chain_spec));
 
         BasicBlockExecutorProvider::new(strategy_factory)
     }
@@ -365,8 +389,8 @@ mod tests {
 
         let chain_spec = Arc::new(OpChainSpecBuilder::base_mainnet().regolith_activated().build());
 
-        let tx = TransactionSigned::from_transaction_and_signature(
-            Transaction::Eip1559(TxEip1559 {
+        let tx = OpTransactionSigned::new_unhashed(
+            OpTypedTransaction::Eip1559(TxEip1559 {
                 chain_id: chain_spec.chain.id(),
                 nonce: 0,
                 gas_limit: MIN_TRANSACTION_GAS,
@@ -376,8 +400,8 @@ mod tests {
             Signature::test_signature(),
         );
 
-        let tx_deposit = TransactionSigned::from_transaction_and_signature(
-            Transaction::Deposit(op_alloy_consensus::TxDeposit {
+        let tx_deposit = OpTransactionSigned::new_unhashed(
+            OpTypedTransaction::Deposit(op_alloy_consensus::TxDeposit {
                 from: addr,
                 to: addr.into(),
                 gas_limit: MIN_TRANSACTION_GAS,
@@ -396,35 +420,27 @@ mod tests {
 
         // Attempt to execute a block with one deposit and one non-deposit transaction
         executor
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![tx, tx_deposit],
-                                ..Default::default()
-                            },
-                        },
-                        senders: vec![addr, addr],
-                    },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
+            .execute_and_verify_one(&BlockWithSenders {
+                block: Block {
+                    header,
+                    body: BlockBody { transactions: vec![tx, tx_deposit], ..Default::default() },
+                },
+                senders: vec![addr, addr],
+            })
             .unwrap();
 
         let receipts = executor.receipts();
         let tx_receipt = receipts[0][0].as_ref().unwrap();
         let deposit_receipt = receipts[0][1].as_ref().unwrap();
 
+        assert!(!matches!(tx_receipt, OpReceipt::Deposit(_)));
+        // deposit_nonce is present only in deposit transactions
+        let OpReceipt::Deposit(deposit_receipt) = deposit_receipt else {
+            panic!("expected deposit")
+        };
+        assert!(deposit_receipt.deposit_nonce.is_some());
         // deposit_receipt_version is not present in pre canyon transactions
         assert!(deposit_receipt.deposit_receipt_version.is_none());
-        assert!(tx_receipt.deposit_receipt_version.is_none());
-
-        // deposit_nonce is present only in deposit transactions
-        assert!(deposit_receipt.deposit_nonce.is_some());
-        assert!(tx_receipt.deposit_nonce.is_none());
     }
 
     #[test]
@@ -449,8 +465,8 @@ mod tests {
 
         let chain_spec = Arc::new(OpChainSpecBuilder::base_mainnet().canyon_activated().build());
 
-        let tx = TransactionSigned::from_transaction_and_signature(
-            Transaction::Eip1559(TxEip1559 {
+        let tx = OpTransactionSigned::new_unhashed(
+            OpTypedTransaction::Eip1559(TxEip1559 {
                 chain_id: chain_spec.chain.id(),
                 nonce: 0,
                 gas_limit: MIN_TRANSACTION_GAS,
@@ -460,8 +476,8 @@ mod tests {
             Signature::test_signature(),
         );
 
-        let tx_deposit = TransactionSigned::from_transaction_and_signature(
-            Transaction::Deposit(op_alloy_consensus::TxDeposit {
+        let tx_deposit = OpTransactionSigned::new_unhashed(
+            OpTypedTransaction::Deposit(op_alloy_consensus::TxDeposit {
                 from: addr,
                 to: addr.into(),
                 gas_limit: MIN_TRANSACTION_GAS,
@@ -480,22 +496,13 @@ mod tests {
 
         // attempt to execute an empty block with parent beacon block root, this should not fail
         executor
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![tx, tx_deposit],
-                                ..Default::default()
-                            },
-                        },
-                        senders: vec![addr, addr],
-                    },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
+            .execute_and_verify_one(&BlockWithSenders {
+                block: Block {
+                    header,
+                    body: BlockBody { transactions: vec![tx, tx_deposit], ..Default::default() },
+                },
+                senders: vec![addr, addr],
+            })
             .expect("Executing a block while canyon is active should not fail");
 
         let receipts = executor.receipts();
@@ -503,11 +510,13 @@ mod tests {
         let deposit_receipt = receipts[0][1].as_ref().unwrap();
 
         // deposit_receipt_version is set to 1 for post canyon deposit transactions
+        assert!(!matches!(tx_receipt, OpReceipt::Deposit(_)));
+        let OpReceipt::Deposit(deposit_receipt) = deposit_receipt else {
+            panic!("expected deposit")
+        };
         assert_eq!(deposit_receipt.deposit_receipt_version, Some(1));
-        assert!(tx_receipt.deposit_receipt_version.is_none());
 
         // deposit_nonce is present only in deposit transactions
         assert!(deposit_receipt.deposit_nonce.is_some());
-        assert!(tx_receipt.deposit_nonce.is_none());
     }
 }

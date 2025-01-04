@@ -1,15 +1,20 @@
 //! Builds an RPC receipt response w.r.t. data layout of network.
 
-use alloy_serde::WithOtherFields;
-use reth_primitives::{Receipt, TransactionMeta, TransactionSigned};
+use alloy_consensus::transaction::TransactionMeta;
+use reth_primitives::{Receipt, TransactionSigned};
+use reth_provider::{BlockReader, ReceiptProvider, TransactionsProvider};
 use reth_rpc_eth_api::{helpers::LoadReceipt, FromEthApiError, RpcNodeCoreExt, RpcReceipt};
-use reth_rpc_eth_types::{EthApiError, ReceiptBuilder};
+use reth_rpc_eth_types::{EthApiError, EthReceiptBuilder};
 
 use crate::EthApi;
 
 impl<Provider, Pool, Network, EvmConfig> LoadReceipt for EthApi<Provider, Pool, Network, EvmConfig>
 where
-    Self: RpcNodeCoreExt,
+    Self: RpcNodeCoreExt<
+        Provider: TransactionsProvider<Transaction = TransactionSigned>
+                      + ReceiptProvider<Receipt = reth_primitives::Receipt>,
+    >,
+    Provider: BlockReader,
 {
     async fn build_transaction_receipt(
         &self,
@@ -26,6 +31,6 @@ where
             .map_err(Self::Error::from_eth_err)?
             .ok_or(EthApiError::HeaderNotFound(hash.into()))?;
 
-        Ok(WithOtherFields::new(ReceiptBuilder::new(&tx, meta, &receipt, &all_receipts)?.build()))
+        Ok(EthReceiptBuilder::new(&tx, meta, &receipt, &all_receipts)?.build())
     }
 }

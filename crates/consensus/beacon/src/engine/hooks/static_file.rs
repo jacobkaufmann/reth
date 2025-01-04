@@ -6,8 +6,10 @@ use crate::{
 };
 use alloy_primitives::BlockNumber;
 use futures::FutureExt;
+use reth_codecs::Compact;
+use reth_db_api::table::Value;
 use reth_errors::RethResult;
-use reth_primitives::static_file::HighestStaticFiles;
+use reth_primitives::{static_file::HighestStaticFiles, NodePrimitives};
 use reth_provider::{
     BlockReader, ChainStateBlockReader, DatabaseProviderFactory, StageCheckpointReader,
     StaticFileProviderFactory,
@@ -33,7 +35,15 @@ impl<Provider> StaticFileHook<Provider>
 where
     Provider: StaticFileProviderFactory
         + DatabaseProviderFactory<
-            Provider: StageCheckpointReader + BlockReader + ChainStateBlockReader,
+            Provider: StaticFileProviderFactory<
+                Primitives: NodePrimitives<
+                    SignedTx: Value + Compact,
+                    BlockHeader: Value + Compact,
+                    Receipt: Value + Compact,
+                >,
+            > + StageCheckpointReader
+                          + BlockReader
+                          + ChainStateBlockReader,
         > + 'static,
 {
     /// Create a new instance
@@ -145,7 +155,15 @@ impl<Provider> EngineHook for StaticFileHook<Provider>
 where
     Provider: StaticFileProviderFactory
         + DatabaseProviderFactory<
-            Provider: StageCheckpointReader + BlockReader + ChainStateBlockReader,
+            Provider: StaticFileProviderFactory<
+                Primitives: NodePrimitives<
+                    SignedTx: Value + Compact,
+                    BlockHeader: Value + Compact,
+                    Receipt: Value + Compact,
+                >,
+            > + StageCheckpointReader
+                          + BlockReader
+                          + ChainStateBlockReader,
         > + 'static,
 {
     fn name(&self) -> &'static str {

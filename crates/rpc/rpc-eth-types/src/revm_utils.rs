@@ -1,7 +1,7 @@
 //! utilities for working with revm
 
 use alloy_primitives::{Address, B256, U256};
-use alloy_rpc_types::{
+use alloy_rpc_types_eth::{
     state::{AccountOverride, StateOverride},
     BlockOverrides,
 };
@@ -20,7 +20,7 @@ use super::{EthApiError, EthResult, RpcInvalidTransactionError};
 #[inline]
 pub fn get_precompiles(spec_id: SpecId) -> impl IntoIterator<Item = Address> {
     let spec = PrecompileSpecId::from_spec_id(spec_id);
-    Precompiles::new(spec).addresses().copied().map(Address::from)
+    Precompiles::new(spec).addresses().copied()
 }
 
 /// Calculates the caller gas allowance.
@@ -265,7 +265,7 @@ where
 {
     // we need to fetch the account via the `DatabaseRef` to not update the state of the account,
     // which is modified via `Database::basic_ref`
-    let mut account_info = DatabaseRef::basic_ref(db, account)?.unwrap_or_default();
+    let mut account_info = db.basic_ref(account)?.unwrap_or_default();
 
     if let Some(nonce) = account_override.nonce {
         account_info.nonce = nonce;

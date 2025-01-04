@@ -17,14 +17,18 @@
 #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+extern crate alloc;
+
 pub use reth_codecs_derive::*;
 use serde as _;
 
 use alloy_primitives::{Address, Bloom, Bytes, FixedBytes, U256};
 use bytes::{Buf, BufMut};
 
-extern crate alloc;
-use alloc::vec::Vec;
+use alloc::{
+    borrow::{Cow, ToOwned},
+    vec::Vec,
+};
 
 #[cfg(feature = "test-utils")]
 pub mod alloy;
@@ -33,8 +37,15 @@ pub mod alloy;
 #[cfg(any(test, feature = "alloy"))]
 mod alloy;
 
+pub mod txtype;
+
 #[cfg(any(test, feature = "test-utils"))]
 pub mod test_utils;
+
+// Used by generated code and doc tests. Not public API.
+#[doc(hidden)]
+#[path = "private.rs"]
+pub mod __private;
 
 /// Trait that implements the `Compact` codec.
 ///
@@ -332,6 +343,32 @@ where
 
         let (element, buf) = T::from_compact(buf, len);
         (Some(element), buf)
+    }
+}
+
+impl<T: Compact + ToOwned<Owned = T>> Compact for Cow<'_, T> {
+    fn to_compact<B>(&self, buf: &mut B) -> usize
+    where
+        B: bytes::BufMut + AsMut<[u8]>,
+    {
+        self.as_ref().to_compact(buf)
+    }
+
+    fn from_compact(buf: &[u8], len: usize) -> (Self, &[u8]) {
+        let (element, buf) = T::from_compact(buf, len);
+        (Cow::Owned(element), buf)
+    }
+
+    fn specialized_to_compact<B>(&self, buf: &mut B) -> usize
+    where
+        B: bytes::BufMut + AsMut<[u8]>,
+    {
+        self.as_ref().specialized_to_compact(buf)
+    }
+
+    fn specialized_from_compact(buf: &[u8], len: usize) -> (Self, &[u8]) {
+        let (element, buf) = T::specialized_from_compact(buf, len);
+        (Cow::Owned(element), buf)
     }
 }
 
@@ -662,7 +699,8 @@ mod tests {
     }
 
     #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Compact, arbitrary::Arbitrary)]
-    #[add_arbitrary_tests(compact)]
+    #[add_arbitrary_tests(crate, compact)]
+    #[reth_codecs(crate = "crate")]
     struct TestStruct {
         f_u64: u64,
         f_u256: U256,
@@ -714,7 +752,8 @@ mod tests {
     #[derive(
         Debug, PartialEq, Clone, Default, Serialize, Deserialize, Compact, arbitrary::Arbitrary,
     )]
-    #[add_arbitrary_tests(compact)]
+    #[add_arbitrary_tests(crate, compact)]
+    #[reth_codecs(crate = "crate")]
     enum TestEnum {
         #[default]
         Var0,

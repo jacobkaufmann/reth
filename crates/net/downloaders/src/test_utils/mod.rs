@@ -29,7 +29,7 @@ pub(crate) fn generate_bodies(
     );
 
     let headers = blocks.iter().map(|block| block.header.clone()).collect();
-    let bodies = blocks.into_iter().map(|block| (block.hash(), block.body)).collect();
+    let bodies = blocks.into_iter().map(|block| (block.hash(), block.into_body())).collect();
 
     (headers, bodies)
 }
@@ -43,7 +43,7 @@ pub(crate) async fn generate_bodies_file(
     let raw_block_bodies = create_raw_bodies(headers.iter().cloned(), &mut bodies.clone());
 
     let file: File = tempfile::tempfile().unwrap().into();
-    let mut writer = FramedWrite::new(file, BlockFileCodec);
+    let mut writer = FramedWrite::new(file, BlockFileCodec::default());
 
     // rlp encode one after the other
     for block in raw_block_bodies {

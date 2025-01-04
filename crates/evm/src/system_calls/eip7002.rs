@@ -4,7 +4,6 @@ use alloc::{boxed::Box, format};
 use alloy_eips::eip7002::WITHDRAWAL_REQUEST_PREDEPLOY_ADDRESS;
 use alloy_primitives::Bytes;
 use reth_execution_errors::{BlockExecutionError, BlockValidationError};
-use reth_primitives::Header;
 use revm::{interpreter::Host, Database, Evm};
 use revm_primitives::{ExecutionResult, ResultAndState};
 
@@ -21,7 +20,7 @@ pub(crate) fn transact_withdrawal_requests_contract_call<EvmConfig, EXT, DB>(
 where
     DB: Database,
     DB::Error: core::fmt::Display,
-    EvmConfig: ConfigureEvm<Header = Header>,
+    EvmConfig: ConfigureEvm,
 {
     // get previous env
     let previous_env = Box::new(evm.context.env().clone());
@@ -52,7 +51,11 @@ where
         }
     };
 
-    // cleanup the state
+    // NOTE: Revm currently marks these accounts as "touched" when we do the above transact calls,
+    // and includes them in the result.
+    //
+    // There should be no state changes to these addresses anyways as a result of this system call,
+    // so we can just remove them from the state returned.
     res.state.remove(&alloy_eips::eip7002::SYSTEM_ADDRESS);
     res.state.remove(&evm.block().coinbase);
 

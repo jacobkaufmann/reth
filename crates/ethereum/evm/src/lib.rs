@@ -17,18 +17,22 @@
 
 extern crate alloc;
 
+use core::convert::Infallible;
+
 use alloc::{sync::Arc, vec::Vec};
+use alloy_consensus::{BlockHeader, Header};
 use alloy_primitives::{Address, Bytes, TxKind, U256};
-use reth_chainspec::{ChainSpec, Head};
-use reth_evm::{ConfigureEvm, ConfigureEvmEnv, NextBlockEnvAttributes};
-use reth_primitives::{transaction::FillTxEnv, Header, TransactionSigned};
+use reth_chainspec::ChainSpec;
+use reth_evm::{env::EvmEnv, ConfigureEvm, ConfigureEvmEnv, NextBlockEnvAttributes};
+use reth_primitives::TransactionSigned;
+use reth_primitives_traits::transaction::execute::FillTxEnv;
 use revm_primitives::{
     AnalysisKind, BlobExcessGasAndPrice, BlockEnv, CfgEnv, CfgEnvWithHandlerCfg, Env, SpecId, TxEnv,
 };
 
 mod config;
-use alloy_eips::eip1559::INITIAL_BASE_FEE;
-pub use config::{revm_spec, revm_spec_by_timestamp_after_merge};
+use alloy_eips::{eip1559::INITIAL_BASE_FEE, eip7840::BlobParams};
+pub use config::{revm_spec, revm_spec_by_timestamp_and_block_number};
 use reth_ethereum_forks::EthereumHardfork;
 
 pub mod execute;
@@ -52,13 +56,15 @@ impl EthEvmConfig {
     }
 
     /// Returns the chain spec associated with this configuration.
-    pub fn chain_spec(&self) -> &ChainSpec {
+    pub const fn chain_spec(&self) -> &Arc<ChainSpec> {
         &self.chain_spec
     }
 }
 
 impl ConfigureEvmEnv for EthEvmConfig {
     type Header = Header;
+    type Transaction = TransactionSigned;
+    type Error = Infallible;
 
     fn fill_tx_env(&self, tx_env: &mut TxEnv, transaction: &TransactionSigned, sender: Address) {
         transaction.fill_tx_env(tx_env, sender);
@@ -104,22 +110,8 @@ impl ConfigureEvmEnv for EthEvmConfig {
         env.block.basefee = U256::ZERO;
     }
 
-    fn fill_cfg_env(
-        &self,
-        cfg_env: &mut CfgEnvWithHandlerCfg,
-        header: &Header,
-        total_difficulty: U256,
-    ) {
-        let spec_id = config::revm_spec(
-            self.chain_spec(),
-            &Head {
-                number: header.number,
-                timestamp: header.timestamp,
-                difficulty: header.difficulty,
-                total_difficulty,
-                hash: Default::default(),
-            },
-        );
+    fn fill_cfg_env(&self, cfg_env: &mut CfgEnvWithHandlerCfg, header: &Header) {
+        let spec_id = config::revm_spec(self.chain_spec(), header);
 
         cfg_env.chain_id = self.chain_spec.chain().id();
         cfg_env.perf_analyse_created_bytecodes = AnalysisKind::Analyse;
@@ -131,25 +123,32 @@ impl ConfigureEvmEnv for EthEvmConfig {
         &self,
         parent: &Self::Header,
         attributes: NextBlockEnvAttributes,
-    ) -> (CfgEnvWithHandlerCfg, BlockEnv) {
+    ) -> Result<EvmEnv, Self::Error> {
         // configure evm env based on parent block
         let cfg = CfgEnv::default().with_chain_id(self.chain_spec.chain().id());
 
         // ensure we're not missing any timestamp based hardforks
-        let spec_id = revm_spec_by_timestamp_after_merge(&self.chain_spec, attributes.timestamp);
+        let spec_id = revm_spec_by_timestamp_and_block_number(
+            &self.chain_spec,
+            attributes.timestamp,
+            parent.number() + 1,
+        );
+
+        let blob_params =
+            if spec_id >= SpecId::PRAGUE { BlobParams::prague() } else { BlobParams::cancun() };
 
         // if the parent block did not have excess blob gas (i.e. it was pre-cancun), but it is
         // cancun now, we need to set the excess blob gas to the default value(0)
         let blob_excess_gas_and_price = parent
-            .next_block_excess_blob_gas()
+            .next_block_excess_blob_gas(blob_params)
             .or_else(|| (spec_id == SpecId::CANCUN).then_some(0))
-            .map(BlobExcessGasAndPrice::new);
+            .map(|gas| BlobExcessGasAndPrice::new(gas, spec_id >= SpecId::PRAGUE));
 
         let mut basefee = parent.next_block_base_fee(
             self.chain_spec.base_fee_params_at_timestamp(attributes.timestamp),
         );
 
-        let mut gas_limit = U256::from(parent.gas_limit);
+        let mut gas_limit = U256::from(attributes.gas_limit);
 
         // If we are on the London fork boundary, we need to multiply the parent's gas limit by the
         // elasticity multiplier to get the new gas limit.
@@ -179,7 +178,7 @@ impl ConfigureEvmEnv for EthEvmConfig {
             blob_excess_gas_and_price,
         };
 
-        (CfgEnvWithHandlerCfg::new_with_spec_id(cfg, spec_id), block_env)
+        Ok((CfgEnvWithHandlerCfg::new_with_spec_id(cfg, spec_id), block_env).into())
     }
 }
 
@@ -192,31 +191,22 @@ impl ConfigureEvm for EthEvmConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy_consensus::constants::KECCAK_EMPTY;
+    use alloy_consensus::{constants::KECCAK_EMPTY, Header};
     use alloy_genesis::Genesis;
     use alloy_primitives::{B256, U256};
     use reth_chainspec::{Chain, ChainSpec, MAINNET};
-    use reth_evm::execute::ProviderError;
-    use reth_primitives::{
-        revm_primitives::{BlockEnv, CfgEnv, SpecId},
-        Header,
-    };
+    use reth_evm::{env::EvmEnv, execute::ProviderError};
     use reth_revm::{
         db::{CacheDB, EmptyDBTyped},
         inspectors::NoOpInspector,
+        primitives::{BlockEnv, CfgEnv, SpecId},
         JournaledState,
     };
-    use revm_primitives::{CfgEnvWithHandlerCfg, EnvWithHandlerCfg, HandlerCfg};
+    use revm_primitives::{EnvWithHandlerCfg, HandlerCfg};
     use std::collections::HashSet;
 
     #[test]
     fn test_fill_cfg_and_block_env() {
-        // Create a new configuration environment
-        let mut cfg_env = CfgEnvWithHandlerCfg::new_with_spec_id(CfgEnv::default(), SpecId::LATEST);
-
-        // Create a default block environment
-        let mut block_env = BlockEnv::default();
-
         // Create a default header
         let header = Header::default();
 
@@ -230,21 +220,14 @@ mod tests {
             .shanghai_activated()
             .build();
 
-        // Define the total difficulty as zero (default)
-        let total_difficulty = U256::ZERO;
-
         // Use the `EthEvmConfig` to fill the `cfg_env` and `block_env` based on the ChainSpec,
         // Header, and total difficulty
-        EthEvmConfig::new(Arc::new(chain_spec.clone())).fill_cfg_and_block_env(
-            &mut cfg_env,
-            &mut block_env,
-            &header,
-            total_difficulty,
-        );
+        let EvmEnv { cfg_env_with_handler_cfg, .. } =
+            EthEvmConfig::new(Arc::new(chain_spec.clone())).cfg_and_block_env(&header);
 
         // Assert that the chain ID in the `cfg_env` is correctly set to the chain ID of the
         // ChainSpec
-        assert_eq!(cfg_env.chain_id, chain_spec.chain().id());
+        assert_eq!(cfg_env_with_handler_cfg.chain_id, chain_spec.chain().id());
     }
 
     #[test]

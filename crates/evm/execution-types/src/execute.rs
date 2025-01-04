@@ -1,5 +1,4 @@
 use alloy_eips::eip7685::Requests;
-use alloy_primitives::U256;
 use reth_primitives::TransactionSignedEcRecovered;
 use revm::db::BundleState;
 
@@ -9,8 +8,6 @@ use revm::db::BundleState;
 pub struct BlockExecutionInput<'a, Block> {
     /// The block to execute.
     pub block: &'a Block,
-    /// The total difficulty of the block.
-    pub total_difficulty: U256,
     /// The inclusion list (IL) that the block must satisfy.
     pub il: Vec<TransactionSignedEcRecovered>,
 }
@@ -19,16 +16,15 @@ impl<'a, Block> BlockExecutionInput<'a, Block> {
     /// Creates a new input.
     pub const fn new(
         block: &'a Block,
-        total_difficulty: U256,
         il: Vec<TransactionSignedEcRecovered>,
     ) -> Self {
-        Self { block, total_difficulty, il }
+        Self { block, il }
     }
 }
 
-impl<'a, Block> From<(&'a Block, U256)> for BlockExecutionInput<'a, Block> {
-    fn from((block, total_difficulty): (&'a Block, U256)) -> Self {
-        Self::new(block, total_difficulty, vec![])
+impl<'a, Block> From<&'a Block> for BlockExecutionInput<'a, Block> {
+    fn from(block: &'a Block) -> Self {
+        Self::new(block, vec![])
     }
 }
 

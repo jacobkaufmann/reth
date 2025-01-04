@@ -10,15 +10,15 @@
 
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
+use alloy_eips::BlockNumberOrTag;
 use alloy_primitives::Address;
-use alloy_rpc_types::state::EvmOverrides;
+use alloy_rpc_types_eth::state::EvmOverrides;
 use clap::Parser;
 use futures_util::StreamExt;
 use reth::{
     builder::NodeHandle,
     chainspec::EthereumChainSpecParser,
     cli::Cli,
-    primitives::BlockNumberOrTag,
     revm::{
         inspector_handle_register,
         interpreter::{Interpreter, OpCode},
@@ -54,8 +54,7 @@ fn main() {
                     if let Some(recipient) = tx.to() {
                         if args.is_match(&recipient) {
                             // convert the pool transaction
-                            let call_request =
-                                transaction_to_call_request(tx.to_recovered_transaction());
+                            let call_request = transaction_to_call_request(tx.to_consensus());
 
                             let result = eth_api
                                 .spawn_with_call_at(
