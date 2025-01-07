@@ -1016,31 +1016,41 @@ where
     }
 
     async fn get_inclusion_list_v1(&self, _parent_hash: B256) -> RpcResult<Vec<Vec<u8>>> {
-        // NOTE
+        // TODO
         //
-        // configure maximum elsewhere and in terms of bytes/gas/etc
-        const MAX: usize = 16;
+        // configure maximum elsewhere (e.g. global config)
+        const MAX_BYTES_PER_IL: usize = 8000;
 
         // NOTE
         //
         // we may not be able to constrain the transactions that we can fetch from the transaction
         // pool by parent hash (for now)
         let mut txs = self.inner.tx_pool.pending_transactions();
+        let mut il = Vec::with_capacity(16);
+        let mut il_size = 0;
 
+        // sort the transactions from earliest timestamp to latest timestamp
         txs.sort_by_key(|tx| tx.timestamp);
-        txs.truncate(MAX);
-        let txs: Vec<Vec<u8>> = txs
-            .into_iter()
-            .map(|tx| {
-                let len = tx.encoded_length();
-                let mut buf = vec![0u8; len];
-                let tx = tx.to_consensus();
-                tx.encode(&mut buf);
-                buf
-            })
-            .collect();
 
-        Ok(txs)
+        for tx in txs {
+            let tx_len = tx.encoded_length();
+
+            // if the transaction would cause the IL to exceed its maximum allowable size, then skip
+            // to the next transaction.
+            if il_size + tx_len > MAX_BYTES_PER_IL {
+                continue;
+            }
+
+            // encode the transaction and append it to the IL
+            let mut buf = vec![0u8; tx_len];
+            let tx = tx.to_consensus();
+            tx.encode(&mut buf);
+            il.push(buf);
+
+            il_size += tx_len;
+        }
+
+        Ok(il)
     }
 }
 
