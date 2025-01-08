@@ -1019,7 +1019,7 @@ where
         // TODO
         //
         // configure maximum elsewhere (e.g. global config)
-        const MAX_BYTES_PER_IL: usize = 8000;
+        const MAX_BYTES_PER_IL: usize = 8192;
 
         // NOTE
         //
