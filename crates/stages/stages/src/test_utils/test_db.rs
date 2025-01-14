@@ -235,7 +235,7 @@ impl TestStageDB {
                 .then(|| provider.latest_writer(StaticFileSegment::Headers).unwrap());
 
             blocks.iter().try_for_each(|block| {
-                Self::insert_header(headers_writer.as_mut(), &tx, &block.header, U256::ZERO)
+                Self::insert_header(headers_writer.as_mut(), &tx, block.sealed_header(), U256::ZERO)
             })?;
 
             if let Some(mut writer) = headers_writer {
@@ -252,7 +252,7 @@ impl TestStageDB {
                 // Insert into body tables.
                 let block_body_indices = StoredBlockBodyIndices {
                     first_tx_num: next_tx_num,
-                    tx_count: block.body().transactions.len() as u64,
+                    tx_count: block.transaction_count() as u64,
                 };
 
                 if !block.body().transactions.is_empty() {
@@ -396,7 +396,7 @@ impl TestStageDB {
                     {
                         cursor.delete_current()?;
                     }
-                    cursor.upsert(address, entry)?;
+                    cursor.upsert(address, &entry)?;
 
                     let mut cursor = tx.cursor_dup_write::<tables::HashedStorages>()?;
                     if cursor
@@ -406,7 +406,7 @@ impl TestStageDB {
                     {
                         cursor.delete_current()?;
                     }
-                    cursor.upsert(hashed_address, hashed_entry)?;
+                    cursor.upsert(hashed_address, &hashed_entry)?;
 
                     Ok(())
                 })
@@ -489,7 +489,7 @@ impl StorageKind {
 
     fn tx_offset(&self) -> u64 {
         if let Self::Database(offset) = self {
-            return offset.unwrap_or_default()
+            return offset.unwrap_or_default();
         }
         0
     }

@@ -582,7 +582,7 @@ mod tests {
                         ..Default::default()
                     },
                 );
-                self.db.insert_headers_with_td(blocks.iter().map(|block| &block.header))?;
+                self.db.insert_headers_with_td(blocks.iter().map(|block| block.sealed_header()))?;
                 if let Some(progress) = blocks.get(start as usize) {
                     // Insert last progress data
                     {
@@ -592,7 +592,7 @@ mod tests {
 
                         let body = StoredBlockBodyIndices {
                             first_tx_num: 0,
-                            tx_count: progress.body().transactions.len() as u64,
+                            tx_count: progress.transaction_count() as u64,
                         };
 
                         static_file_producer.set_block_range(0..=progress.number);

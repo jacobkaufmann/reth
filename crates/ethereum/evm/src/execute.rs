@@ -7,14 +7,13 @@ use crate::{
     EthEvmConfig,
 };
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
-use alloy_consensus::Transaction as _;
+use alloy_consensus::Transaction;
 use alloy_eips::{eip6110, eip7685::Requests};
 use core::fmt::Display;
 use reth_chainspec::{ChainSpec, EthereumHardfork, EthereumHardforks, MAINNET};
 use reth_consensus::ConsensusError;
 use reth_ethereum_consensus::validate_block_post_execution;
 use reth_evm::{
-    env::EvmEnv,
     execute::{
         balance_increment_state, BasicBlockExecutorProvider, BlockExecutionError,
         BlockExecutionStrategy, BlockExecutionStrategyFactory, BlockValidationError, ExecuteOutput,
@@ -28,7 +27,7 @@ use reth_primitives::{BlockWithSenders, EthPrimitives, Receipt, TransactionSigne
 use reth_revm::db::State;
 use revm_primitives::{
     db::{Database, DatabaseCommit},
-    EnvWithHandlerCfg, ResultAndState,
+    ResultAndState,
 };
 
 /// Factory for [`EthExecutionStrategy`].
@@ -115,23 +114,6 @@ where
     }
 }
 
-impl<DB, EvmConfig> EthExecutionStrategy<DB, EvmConfig>
-where
-    DB: Database<Error: Into<ProviderError> + Display>,
-    EvmConfig: ConfigureEvm<Header = alloy_consensus::Header>,
-{
-    /// Configures a new evm configuration and block environment for the given block.
-    ///
-    /// # Caution
-    ///
-    /// This does not initialize the tx environment.
-    fn evm_env_for_block(&self, header: &alloy_consensus::Header) -> EnvWithHandlerCfg {
-        let EvmEnv { cfg_env_with_handler_cfg, block_env } =
-            self.evm_config.cfg_and_block_env(header);
-        EnvWithHandlerCfg::new_with_cfg_env(cfg_env_with_handler_cfg, block_env, Default::default())
-    }
-}
-
 impl<DB, EvmConfig> BlockExecutionStrategy for EthExecutionStrategy<DB, EvmConfig>
 where
     DB: Database<Error: Into<ProviderError> + Display>,
@@ -155,10 +137,9 @@ where
             (*self.chain_spec).is_spurious_dragon_active_at_block(block.header.number);
         self.state.set_state_clear_flag(state_clear_flag);
 
-        let env = self.evm_env_for_block(&block.header);
-        let mut evm = self.evm_config.evm_with_env(&mut self.state, env);
+        let mut evm = self.evm_config.evm_for_block(&mut self.state, &block.header);
 
-        self.system_caller.apply_pre_execution_changes(&block.block, &mut evm)?;
+        self.system_caller.apply_pre_execution_changes(&block.header, &mut evm)?;
 
         Ok(())
     }
@@ -167,8 +148,7 @@ where
         &mut self,
         block: &BlockWithSenders,
     ) -> Result<ExecuteOutput<Receipt>, Self::Error> {
-        let env = self.evm_env_for_block(&block.header);
-        let mut evm = self.evm_config.evm_with_env(&mut self.state, env);
+        let mut evm = self.evm_config.evm_for_block(&mut self.state, &block.header);
 
         let mut cumulative_gas_used = 0;
         let mut receipts = Vec::with_capacity(block.body.transactions.len());
@@ -229,8 +209,7 @@ where
         block: &BlockWithSenders,
         receipts: &[Receipt],
     ) -> Result<Requests, Self::Error> {
-        let env = self.evm_env_for_block(&block.header);
-        let mut evm = self.evm_config.evm_with_env(&mut self.state, env);
+        let mut evm = self.evm_config.evm_for_block(&mut self.state, &block.header);
 
         let requests = if self.chain_spec.is_prague_active_at_timestamp(block.timestamp) {
             // Collect all EIP-6110 deposits
@@ -298,8 +277,7 @@ where
         let txs: HashSet<_> = block.body.transactions.iter().map(|tx| tx.hash()).collect();
 
         // configure the EVM
-        let env = self.evm_env_for_block(&block.header);
-        let mut evm = self.evm_config.evm_with_env(&mut self.state, env);
+        let mut evm = self.evm_config.evm_for_block(&mut self.state, &block.header);
 
         // compute the amount of remaining gas available
         let block_available_gas = block.header.gas_limit - exec_output.gas_used;
@@ -318,7 +296,7 @@ where
 
             // prepare the EVM to execute the transaction
             let sender = tx.signer();
-            self.evm_config.fill_tx_env(evm.tx_mut(), tx.as_signed(), sender);
+            self.evm_config.fill_tx_env(evm.tx_mut(), tx.tx(), sender);
 
             // if the transaction executes, then return an error
             //
@@ -379,9 +357,8 @@ mod tests {
         BasicBlockExecutorProvider, BatchExecutor, BlockExecutorProvider, Executor,
     };
     use reth_execution_types::BlockExecutionOutput;
-    use reth_primitives::{
-        public_key_to_address, Account, Block, BlockBody, BlockExt, Transaction,
-    };
+    use reth_primitives::{Account, Block, BlockBody, BlockExt, Transaction};
+    use reth_primitives_traits::crypto::secp256k1::public_key_to_address;
     use reth_revm::{
         database::StateProviderDatabase, test_utils::StateProviderTest, TransitionState,
     };
@@ -468,10 +445,10 @@ mod tests {
                 "Executing cancun block without parent beacon block root field should fail",
             );
 
-        assert_eq!(
+        assert!(matches!(
             err.as_validation().unwrap().clone(),
             BlockValidationError::MissingParentBeaconBlockRoot
-        );
+        ));
 
         // fix header, set a gas limit
         header.parent_beacon_block_root = Some(B256::with_last_byte(0x69));
@@ -1145,13 +1122,13 @@ mod tests {
         // Check if the execution result is an error and assert the specific error type
         match exec_result {
             Ok(_) => panic!("Expected block gas limit error"),
-            Err(err) => assert_eq!(
+            Err(err) => assert!(matches!(
                 *err.as_validation().unwrap(),
                 BlockValidationError::TransactionGasLimitMoreThanAvailableBlockGas {
                     transaction_gas_limit: 2_500_000,
                     block_available_gas: 1_500_000,
                 }
-            ),
+            )),
         }
     }
 

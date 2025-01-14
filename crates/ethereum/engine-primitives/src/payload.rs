@@ -9,7 +9,8 @@ use alloy_rpc_types_engine::{
 };
 use reth_chain_state::ExecutedBlock;
 use reth_payload_primitives::{BuiltPayload, PayloadBuilderAttributes};
-use reth_primitives::{EthPrimitives, SealedBlock, TransactionSignedEcRecovered};
+use reth_primitives::{EthPrimitives, RecoveredTx, SealedBlock, TransactionSigned};
+use reth_primitives_traits::transaction::signed::SignedTransaction;
 use reth_rpc_types_compat::engine::payload::{
     block_to_payload_v1, block_to_payload_v3, convert_block_to_payload_field_v2,
 };
@@ -197,7 +198,7 @@ pub struct EthPayloadBuilderAttributes {
     /// Root of the parent beacon block
     pub parent_beacon_block_root: Option<B256>,
     /// Inclusion list for the generated payload.
-    pub il: Option<Vec<Option<TransactionSignedEcRecovered>>>,
+    pub il: Option<Vec<Option<RecoveredTx<TransactionSigned>>>>,
 }
 
 // === impl EthPayloadBuilderAttributes ===
@@ -217,7 +218,15 @@ impl EthPayloadBuilderAttributes {
         // if the IL is present, then attempt to decode each transaction in the IL.
         let il = attributes.il.map(|il| {
             il.into_iter()
-                .map(|tx| TransactionSignedEcRecovered::decode(&mut tx.as_slice()).ok())
+                .map(|tx| {
+                    let Some(signed) = TransactionSigned::decode(&mut tx.as_slice()).ok() else {
+                        return None;
+                    };
+                    let Some(signer) = signed.recover_signer() else {
+                        return None;
+                    };
+                    Some(RecoveredTx::new_unchecked(signed, signer))
+                })
                 .collect()
         });
 
@@ -277,7 +286,7 @@ impl PayloadBuilderAttributes for EthPayloadBuilderAttributes {
         &self.withdrawals
     }
 
-    fn il(&self) -> Option<&Vec<Option<TransactionSignedEcRecovered>>> {
+    fn il(&self) -> Option<&Vec<Option<RecoveredTx<TransactionSigned>>>> {
         self.il.as_ref()
     }
 }
