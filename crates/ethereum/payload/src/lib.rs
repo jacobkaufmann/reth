@@ -31,7 +31,8 @@ use reth_payload_builder_primitives::PayloadBuilderError;
 use reth_payload_primitives::PayloadBuilderAttributes;
 use reth_primitives::{
     proofs::{self},
-    Block, BlockBody, BlockExt, EthereumHardforks, InvalidTransactionError, Receipt, TransactionSigned,
+    Block, BlockBody, BlockExt, EthereumHardforks, InvalidTransactionError, Receipt,
+    TransactionSigned,
 };
 use reth_revm::database::StateProviderDatabase;
 use reth_transaction_pool::{

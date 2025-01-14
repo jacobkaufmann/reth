@@ -279,7 +279,10 @@ where
                 payload,
                 ExecutionPayloadSidecar::v4(
                     CancunPayloadFields { versioned_hashes, parent_beacon_block_root },
-                    PraguePayloadFields { requests: RequestsOrHash::Requests(execution_requests), il },
+                    PraguePayloadFields {
+                        requests: RequestsOrHash::Requests(execution_requests),
+                        il,
+                    },
                 ),
             )
             .await

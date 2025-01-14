@@ -151,7 +151,10 @@ pub trait BlockExecutorProvider: Send + Sync + Clone + Unpin + 'static {
     /// the returned state.
     type Executor<DB: Database<Error: Into<ProviderError> + Display>>: for<'a> Executor<
         DB,
-        Input<'a> = BlockExecutionInput<'a, BlockWithSenders<<Self::Primitives as NodePrimitives>::Block>>,
+        Input<'a> = BlockExecutionInput<
+            'a,
+            BlockWithSenders<<Self::Primitives as NodePrimitives>::Block>,
+        >,
         Output = BlockExecutionOutput<<Self::Primitives as NodePrimitives>::Receipt>,
         Error = BlockExecutionError,
     >;
@@ -159,7 +162,10 @@ pub trait BlockExecutorProvider: Send + Sync + Clone + Unpin + 'static {
     /// An executor that can execute a batch of blocks given a database.
     type BatchExecutor<DB: Database<Error: Into<ProviderError> + Display>>: for<'a> BatchExecutor<
         DB,
-        Input<'a> = BlockExecutionInput<'a, BlockWithSenders<<Self::Primitives as NodePrimitives>::Block>>,
+        Input<'a> = BlockExecutionInput<
+            'a,
+            BlockWithSenders<<Self::Primitives as NodePrimitives>::Block>,
+        >,
         Output = ExecutionOutcome<<Self::Primitives as NodePrimitives>::Receipt>,
         Error = BlockExecutionError,
     >;
@@ -348,7 +354,8 @@ where
     S: BlockExecutionStrategy<DB = DB>,
     DB: Database<Error: Into<ProviderError> + Display>,
 {
-    type Input<'a> = BlockExecutionInput<'a, BlockWithSenders<<S::Primitives as NodePrimitives>::Block>>;
+    type Input<'a> =
+        BlockExecutionInput<'a, BlockWithSenders<<S::Primitives as NodePrimitives>::Block>>;
     type Output = BlockExecutionOutput<<S::Primitives as NodePrimitives>::Receipt>;
     type Error = S::Error;
 
@@ -363,8 +370,7 @@ where
         let exec_output = self.strategy.execute_transactions(block)?;
         self.strategy.validate_block_inclusion_list(block, &exec_output, il)?;
         let ExecuteOutput { receipts, gas_used } = exec_output;
-        let requests =
-            self.strategy.apply_post_execution_changes(block, &receipts)?;
+        let requests = self.strategy.apply_post_execution_changes(block, &receipts)?;
         let state = self.strategy.finish();
 
         Ok(BlockExecutionOutput { state, receipts, requests, gas_used })
@@ -384,8 +390,7 @@ where
         let exec_output = self.strategy.execute_transactions(block)?;
         self.strategy.validate_block_inclusion_list(block, &exec_output, il)?;
         let ExecuteOutput { receipts, gas_used } = exec_output;
-        let requests =
-            self.strategy.apply_post_execution_changes(block, &receipts)?;
+        let requests = self.strategy.apply_post_execution_changes(block, &receipts)?;
 
         state(self.strategy.state_ref());
 
@@ -410,8 +415,7 @@ where
         let exec_output = self.strategy.execute_transactions(block)?;
         self.strategy.validate_block_inclusion_list(block, &exec_output, il)?;
         let ExecuteOutput { receipts, gas_used } = exec_output;
-        let requests =
-            self.strategy.apply_post_execution_changes(block, &receipts)?;
+        let requests = self.strategy.apply_post_execution_changes(block, &receipts)?;
 
         let state = self.strategy.finish();
 
@@ -450,7 +454,8 @@ where
     S: BlockExecutionStrategy<DB = DB, Error = BlockExecutionError>,
     DB: Database<Error: Into<ProviderError> + Display>,
 {
-    type Input<'a> = BlockExecutionInput<'a, BlockWithSenders<<S::Primitives as NodePrimitives>::Block>>;
+    type Input<'a> =
+        BlockExecutionInput<'a, BlockWithSenders<<S::Primitives as NodePrimitives>::Block>>;
     type Output = ExecutionOutcome<<S::Primitives as NodePrimitives>::Receipt>;
     type Error = BlockExecutionError;
 
@@ -465,8 +470,7 @@ where
         let exec_output = self.strategy.execute_transactions(block)?;
         self.strategy.validate_block_inclusion_list(block, &exec_output, il)?;
         let ExecuteOutput { receipts, gas_used: _gas_used } = exec_output;
-        let requests =
-            self.strategy.apply_post_execution_changes(block, &receipts)?;
+        let requests = self.strategy.apply_post_execution_changes(block, &receipts)?;
 
         self.strategy.validate_block_post_execution(block, &receipts, &requests)?;
 

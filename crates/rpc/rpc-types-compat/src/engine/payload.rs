@@ -22,9 +22,10 @@ pub fn block_to_payload<T: SignedTransaction>(
             versioned_hashes: value.body().blob_versioned_hashes_iter().copied().collect(),
         });
 
-    let prague = value
-        .requests_hash
-        .map(|requests_hash| PraguePayloadFields { requests: RequestsOrHash::Hash(requests_hash), il: vec![] });
+    let prague = value.requests_hash.map(|requests_hash| PraguePayloadFields {
+        requests: RequestsOrHash::Hash(requests_hash),
+        il: vec![],
+    });
 
     let sidecar = match (cancun, prague) {
         (Some(cancun), Some(prague)) => ExecutionPayloadSidecar::v4(cancun, prague),

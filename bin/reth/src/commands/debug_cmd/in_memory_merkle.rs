@@ -152,7 +152,8 @@ impl<C: ChainSpecParser<ChainSpec = ChainSpec>> Command<C> {
                 .clone()
                 .unseal::<BlockTy<N>>()
                 .with_recovered_senders()
-                .ok_or(BlockValidationError::SenderRecoveryError)?).into(),
+                .ok_or(BlockValidationError::SenderRecoveryError)?)
+                .into(),
         )?;
         let execution_outcome = ExecutionOutcome::from((block_execution_output, block.number));
 

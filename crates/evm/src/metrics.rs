@@ -115,7 +115,8 @@ impl ExecutorMetrics {
         let wrapper = MeteredStateHook { metrics: self.clone(), inner_hook: state_hook };
 
         // Use metered to execute and track timing/gas metrics
-        let output = self.metered(input.block, || executor.execute_with_state_hook(input, wrapper))?;
+        let output =
+            self.metered(input.block, || executor.execute_with_state_hook(input, wrapper))?;
 
         // Update the metrics for the number of accounts, storage slots and bytecodes updated
         let accounts = output.state.state.len();

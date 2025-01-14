@@ -14,10 +14,7 @@ pub struct BlockExecutionInput<'a, Block> {
 
 impl<'a, Block> BlockExecutionInput<'a, Block> {
     /// Creates a new input.
-    pub const fn new(
-        block: &'a Block,
-        il: Vec<TransactionSignedEcRecovered>,
-    ) -> Self {
+    pub const fn new(block: &'a Block, il: Vec<TransactionSignedEcRecovered>) -> Self {
         Self { block, il }
     }
 }
