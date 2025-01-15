@@ -92,6 +92,10 @@ impl EngineMessageStore {
             }
             // noop
             BeaconEngineMessage::TransitionConfigurationExchanged => (),
+            // TODO
+            //
+            // noop
+            BeaconEngineMessage::UpdatePayloadWithInclusionList { .. } => (),
         };
         Ok(())
     }

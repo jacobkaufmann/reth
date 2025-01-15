@@ -16,8 +16,8 @@ use alloy_primitives::{
 };
 use alloy_rlp::Decodable;
 use alloy_rpc_types_engine::{
-    ExecutionPayload, ExecutionPayloadSidecar, ForkchoiceState, PayloadStatus, PayloadStatusEnum,
-    PayloadValidationError,
+    ExecutionPayload, ExecutionPayloadSidecar, ForkchoiceState, PayloadId, PayloadStatus,
+    PayloadStatusEnum, PayloadValidationError,
 };
 use block_buffer::BlockBuffer;
 use error::{InsertBlockError, InsertBlockErrorKind, InsertBlockFatalError};
@@ -916,6 +916,15 @@ where
         Ok(outcome)
     }
 
+    fn on_update_payload_with_inclusion_list(
+        &mut self,
+        payload_id: PayloadId,
+        inclusion_list: Vec<Vec<u8>>,
+    ) {
+        let len = inclusion_list.len();
+        info!(target: "engine::tree", payload=%payload_id, len=%len, "invoked update payload with inclusion list");
+    }
+
     /// Returns the new chain for the given head.
     ///
     /// This also handles reorgs.
@@ -1359,6 +1368,15 @@ where
                                 // the CL
                                 self.canonical_in_memory_state
                                     .on_transition_configuration_exchanged();
+                            }
+                            BeaconEngineMessage::UpdatePayloadWithInclusionList {
+                                payload_id,
+                                inclusion_list,
+                            } => {
+                                self.on_update_payload_with_inclusion_list(
+                                    payload_id,
+                                    inclusion_list,
+                                );
                             }
                         }
                     }

@@ -165,6 +165,13 @@ pub enum BeaconEngineMessage<Engine: EngineTypes> {
     },
     /// Message with exchanged transition configuration.
     TransitionConfigurationExchanged,
+    /// Message with new aggregate inclusion list for a given payload.
+    UpdatePayloadWithInclusionList {
+        /// The payload to update.
+        payload_id: PayloadId,
+        /// The latest aggregate inclusion list.
+        inclusion_list: Vec<Vec<u8>>,
+    },
 }
 
 impl<Engine: EngineTypes> Display for BeaconEngineMessage<Engine> {
@@ -190,6 +197,9 @@ impl<Engine: EngineTypes> Display for BeaconEngineMessage<Engine> {
             }
             Self::TransitionConfigurationExchanged => {
                 write!(f, "TransitionConfigurationExchanged")
+            }
+            Self::UpdatePayloadWithInclusionList { payload_id, .. } => {
+                write!(f, "UpdatePayloadWithInclusionList(payload: {})", payload_id)
             }
         }
     }
@@ -271,5 +281,17 @@ where
     /// itself.
     pub fn transition_configuration_exchanged(&self) {
         let _ = self.to_engine.send(BeaconEngineMessage::TransitionConfigurationExchanged);
+    }
+
+    /// Sends a new inclusion list message to the beacon consensus engine.
+    pub fn update_payload_with_inclusion_list(
+        &self,
+        payload_id: PayloadId,
+        inclusion_list: Vec<Vec<u8>>,
+    ) {
+        let _ = self.to_engine.send(BeaconEngineMessage::UpdatePayloadWithInclusionList {
+            payload_id,
+            inclusion_list,
+        });
     }
 }

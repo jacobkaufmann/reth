@@ -1055,6 +1055,17 @@ where
 
         Ok(il)
     }
+
+    async fn update_payload_with_inclusion_list_v1(
+        &self,
+        payload_id: PayloadId,
+        inclusion_list: Vec<Vec<u8>>,
+    ) -> RpcResult<()> {
+        Ok(self
+            .inner
+            .beacon_consensus
+            .update_payload_with_inclusion_list(payload_id, inclusion_list))
+    }
 }
 
 impl<Provider, EngineT, Pool, Validator, ChainSpec> std::fmt::Debug
