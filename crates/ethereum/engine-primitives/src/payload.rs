@@ -1,5 +1,6 @@
 //! Contains types required for building a payload.
 
+use alloc::{sync::Arc, vec::Vec};
 use alloy_eips::{eip4844::BlobTransactionSidecar, eip4895::Withdrawals, eip7685::Requests};
 use alloy_primitives::{Address, B256, U256};
 use alloy_rlp::{Decodable, Encodable};
@@ -7,6 +8,7 @@ use alloy_rpc_types_engine::{
     ExecutionPayloadEnvelopeV2, ExecutionPayloadEnvelopeV3, ExecutionPayloadEnvelopeV4,
     ExecutionPayloadV1, PayloadAttributes, PayloadId,
 };
+use core::convert::Infallible;
 use reth_chain_state::ExecutedBlock;
 use reth_payload_primitives::{BuiltPayload, PayloadBuilderAttributes};
 use reth_primitives::{EthPrimitives, RecoveredTx, SealedBlock, TransactionSigned};
@@ -14,7 +16,6 @@ use reth_primitives_traits::transaction::signed::SignedTransaction;
 use reth_rpc_types_compat::engine::payload::{
     block_to_payload_v1, block_to_payload_v3, convert_block_to_payload_field_v2,
 };
-use std::{convert::Infallible, sync::Arc};
 
 /// Contains the built payload.
 ///
@@ -222,7 +223,7 @@ impl EthPayloadBuilderAttributes {
                     let Some(signed) = TransactionSigned::decode(&mut tx.as_slice()).ok() else {
                         return None;
                     };
-                    let Some(signer) = signed.recover_signer() else {
+                    let Ok(signer) = signed.recover_signer() else {
                         return None;
                     };
                     Some(RecoveredTx::new_unchecked(signed, signer))
@@ -329,7 +330,7 @@ mod tests {
     use super::*;
     use alloy_eips::eip4895::Withdrawal;
     use alloy_primitives::B64;
-    use std::str::FromStr;
+    use core::str::FromStr;
 
     #[test]
     fn attributes_serde() {

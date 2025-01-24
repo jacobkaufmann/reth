@@ -21,7 +21,7 @@ use reth_evm::{
     },
     state_change::post_block_balance_increments,
     system_calls::{OnStateHook, SystemCaller},
-    ConfigureEvm, Evm, TxEnvOverrides,
+    ConfigureEvm, Evm,
 };
 use reth_primitives::{BlockWithSenders, EthPrimitives, Receipt, RecoveredBlock, RecoveredTx, TransactionSignedEcRecovered};
 use reth_primitives_traits::{BlockBody, SignedTransaction};
@@ -96,8 +96,6 @@ where
     chain_spec: Arc<ChainSpec>,
     /// How to create an EVM.
     evm_config: EvmConfig,
-    /// Optional overrides for the transactions environment.
-    tx_env_overrides: Option<Box<dyn TxEnvOverrides>>,
     /// Current state for block execution.
     state: State<DB>,
     /// Utility to call system smart contracts.
@@ -111,7 +109,7 @@ where
     /// Creates a new [`EthExecutionStrategy`]
     pub fn new(state: State<DB>, chain_spec: Arc<ChainSpec>, evm_config: EvmConfig) -> Self {
         let system_caller = SystemCaller::new(evm_config.clone(), chain_spec.clone());
-        Self { state, chain_spec, evm_config, system_caller, tx_env_overrides: None }
+        Self { state, chain_spec, evm_config, system_caller }
     }
 }
 
@@ -125,12 +123,7 @@ where
 {
     type DB = DB;
     type Error = BlockExecutionError;
-
     type Primitives = EthPrimitives;
-
-    fn init(&mut self, tx_env_overrides: Box<dyn TxEnvOverrides>) {
-        self.tx_env_overrides = Some(tx_env_overrides);
-    }
 
     fn apply_pre_execution_changes(
         &mut self,
@@ -168,11 +161,7 @@ where
                 .into())
             }
 
-            let mut tx_env = self.evm_config.tx_env(transaction, *sender);
-
-            if let Some(tx_env_overrides) = &mut self.tx_env_overrides {
-                tx_env_overrides.apply(&mut tx_env);
-            }
+            let tx_env = self.evm_config.tx_env(transaction, *sender);
 
             // Execute transaction.
             let result_and_state = evm.transact(tx_env).map_err(move |err| {
@@ -759,7 +748,8 @@ mod tests {
         let chain_spec = Arc::new(
             ChainSpecBuilder::from(&*MAINNET)
                 .shanghai_activated()
-                .with_fork(EthereumHardfork::Prague, ForkCondition::Timestamp(0))
+                .cancun_activated()
+                .prague_activated()
                 .build(),
         );
 
@@ -797,6 +787,7 @@ mod tests {
         let chain_spec = Arc::new(
             ChainSpecBuilder::from(&*MAINNET)
                 .shanghai_activated()
+                .cancun_activated()
                 .with_fork(EthereumHardfork::Prague, ForkCondition::Timestamp(1))
                 .build(),
         );
@@ -806,6 +797,8 @@ mod tests {
             timestamp: 1,
             number: fork_activation_block,
             requests_hash: Some(EMPTY_REQUESTS_HASH),
+            excess_blob_gas: Some(0),
+            parent_beacon_block_root: Some(B256::random()),
             ..Header::default()
         };
         let provider = executor_provider(chain_spec);
@@ -847,6 +840,7 @@ mod tests {
         let chain_spec = Arc::new(
             ChainSpecBuilder::from(&*MAINNET)
                 .shanghai_activated()
+                .cancun_activated()
                 .with_fork(EthereumHardfork::Prague, ForkCondition::Timestamp(1))
                 .build(),
         );
@@ -859,6 +853,8 @@ mod tests {
             timestamp: 1,
             number: fork_activation_block,
             requests_hash: Some(EMPTY_REQUESTS_HASH),
+            excess_blob_gas: Some(0),
+            parent_beacon_block_root: Some(B256::random()),
             ..Header::default()
         };
 
@@ -884,12 +880,12 @@ mod tests {
         let chain_spec = Arc::new(
             ChainSpecBuilder::from(&*MAINNET)
                 .shanghai_activated()
-                .with_fork(EthereumHardfork::Prague, ForkCondition::Timestamp(0))
+                .cancun_activated()
+                .prague_activated()
                 .build(),
         );
 
-        let mut header = chain_spec.genesis_header().clone();
-        header.requests_hash = Some(EMPTY_REQUESTS_HASH);
+        let header = chain_spec.genesis_header().clone();
         let header_hash = header.hash_slow();
 
         let provider = executor_provider(chain_spec);
@@ -921,6 +917,8 @@ mod tests {
             timestamp: 1,
             number: 1,
             requests_hash: Some(EMPTY_REQUESTS_HASH),
+            excess_blob_gas: Some(0),
+            parent_beacon_block_root: Some(B256::random()),
             ..Header::default()
         };
         let header_hash = header.hash_slow();
@@ -954,6 +952,8 @@ mod tests {
             timestamp: 1,
             number: 2,
             requests_hash: Some(EMPTY_REQUESTS_HASH),
+            excess_blob_gas: Some(0),
+            parent_beacon_block_root: Some(B256::random()),
             ..Header::default()
         };
 
@@ -992,7 +992,8 @@ mod tests {
         let chain_spec = Arc::new(
             ChainSpecBuilder::from(&*MAINNET)
                 .shanghai_activated()
-                .with_fork(EthereumHardfork::Prague, ForkCondition::Timestamp(0))
+                .cancun_activated()
+                .prague_activated()
                 .build(),
         );
 
@@ -1141,7 +1142,8 @@ mod tests {
         let chain_spec = Arc::new(
             ChainSpecBuilder::from(&*MAINNET)
                 .shanghai_activated()
-                .with_fork(EthereumHardfork::Prague, ForkCondition::Timestamp(0))
+                .cancun_activated()
+                .prague_activated()
                 .build(),
         );
 
@@ -1159,7 +1161,13 @@ mod tests {
         let withdrawal =
             Withdrawal { index: 0, validator_index: 0, address: withdrawal_recipient, amount: 1 };
 
-        let header = Header { timestamp: 1, number: 1, ..Header::default() };
+        let header = Header {
+            timestamp: 1,
+            number: 1,
+            excess_blob_gas: Some(0),
+            parent_beacon_block_root: Some(B256::random()),
+            ..Header::default()
+        };
 
         let block = &RecoveredBlock::new_unhashed(
             Block {

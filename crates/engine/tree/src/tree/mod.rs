@@ -27,9 +27,8 @@ use reth_chain_state::{
 use reth_consensus::{Consensus, FullConsensus, PostExecutionInput};
 pub use reth_engine_primitives::InvalidBlockHook;
 use reth_engine_primitives::{
-    BeaconConsensusEngineEvent, BeaconEngineMessage, BeaconOnNewPayloadError,
-    EngineApiMessageVersion, EngineTypes, EngineValidator, ForkchoiceStateTracker,
-    OnForkChoiceUpdated,
+    BeaconConsensusEngineEvent, BeaconEngineMessage, BeaconOnNewPayloadError, EngineTypes,
+    EngineValidator, ForkchoiceStateTracker, OnForkChoiceUpdated,
 };
 use reth_errors::{ConsensusError, ProviderResult};
 use reth_evm::{
@@ -38,7 +37,7 @@ use reth_evm::{
 };
 use reth_payload_builder::PayloadBuilderHandle;
 use reth_payload_builder_primitives::PayloadBuilder;
-use reth_payload_primitives::PayloadBuilderAttributes;
+use reth_payload_primitives::{EngineApiMessageVersion, PayloadBuilderAttributes};
 use reth_primitives::{
     EthPrimitives, GotExpected, NodePrimitives, RecoveredBlock, RecoveredTx, SealedBlock, SealedBlockFor,
     SealedBlockWithSenders, SealedHeader, TransactionSigned,
@@ -597,10 +596,7 @@ where
     ) -> Self {
         let (incoming_tx, incoming) = std::sync::mpsc::channel();
 
-        // The thread pool requires at least 2 threads as it contains a long running sparse trie
-        // task.
-        let num_threads =
-            std::thread::available_parallelism().map_or(2, |num| (num.get() / 2).max(2));
+        let num_threads = root::thread_pool_size();
 
         let state_root_task_pool = Arc::new(
             rayon::ThreadPoolBuilder::new()
@@ -819,7 +815,7 @@ where
                     let Some(signed) = TransactionSigned::decode(&mut tx.as_slice()).ok() else {
                         return None;
                     };
-                    let Some(signer) = signed.recover_signer() else {
+                    let Ok(signer) = signed.recover_signer() else {
                         return None;
                     };
                     Some(RecoveredTx::new_unchecked(signed, signer))
@@ -1218,28 +1214,6 @@ where
     /// If we're currently awaiting a response this will try to receive the response (non-blocking)
     /// or send a new persistence action if necessary.
     fn advance_persistence(&mut self) -> Result<(), AdvancePersistenceError> {
-        if !self.persistence_state.in_progress() {
-            if let Some(new_tip_num) = self.persistence_state.remove_above_state.pop_front() {
-                debug!(target: "engine::tree", ?new_tip_num, remove_state=?self.persistence_state.remove_above_state, last_persisted_block_number=?self.persistence_state.last_persisted_block.number, "Removing blocks using persistence task");
-                if new_tip_num < self.persistence_state.last_persisted_block.number {
-                    debug!(target: "engine::tree", ?new_tip_num, "Starting remove blocks job");
-                    let (tx, rx) = oneshot::channel();
-                    let _ = self.persistence.remove_blocks_above(new_tip_num, tx);
-                    self.persistence_state.start(rx);
-                }
-            } else if self.should_persist() {
-                let blocks_to_persist = self.get_canonical_blocks_to_persist();
-                if blocks_to_persist.is_empty() {
-                    debug!(target: "engine::tree", "Returned empty set of blocks to persist");
-                } else {
-                    debug!(target: "engine::tree", blocks = ?blocks_to_persist.iter().map(|block| block.recovered_block().num_hash()).collect::<Vec<_>>(), "Persisting blocks");
-                    let (tx, rx) = oneshot::channel();
-                    let _ = self.persistence.save_blocks(blocks_to_persist, tx);
-                    self.persistence_state.start(rx);
-                }
-            }
-        }
-
         if self.persistence_state.in_progress() {
             let (mut rx, start_time) = self
                 .persistence_state
@@ -1270,6 +1244,29 @@ where
                 Err(TryRecvError::Empty) => self.persistence_state.rx = Some((rx, start_time)),
             }
         }
+
+        if !self.persistence_state.in_progress() {
+            if let Some(new_tip_num) = self.persistence_state.remove_above_state.pop_front() {
+                debug!(target: "engine::tree", ?new_tip_num, remove_state=?self.persistence_state.remove_above_state, last_persisted_block_number=?self.persistence_state.last_persisted_block.number, "Removing blocks using persistence task");
+                if new_tip_num < self.persistence_state.last_persisted_block.number {
+                    debug!(target: "engine::tree", ?new_tip_num, "Starting remove blocks job");
+                    let (tx, rx) = oneshot::channel();
+                    let _ = self.persistence.remove_blocks_above(new_tip_num, tx);
+                    self.persistence_state.start(rx);
+                }
+            } else if self.should_persist() {
+                let blocks_to_persist = self.get_canonical_blocks_to_persist();
+                if blocks_to_persist.is_empty() {
+                    debug!(target: "engine::tree", "Returned empty set of blocks to persist");
+                } else {
+                    debug!(target: "engine::tree", blocks = ?blocks_to_persist.iter().map(|block| block.recovered_block().num_hash()).collect::<Vec<_>>(), "Persisting blocks");
+                    let (tx, rx) = oneshot::channel();
+                    let _ = self.persistence.save_blocks(blocks_to_persist, tx);
+                    self.persistence_state.start(rx);
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -1293,7 +1290,7 @@ where
                     EngineApiRequest::InsertExecutedBlock(block) => {
                         debug!(target: "engine::tree", block=?block.recovered_block().num_hash(), "inserting already executed block");
                         let now = Instant::now();
-                        let sealed_block = Arc::new(block.recovered_block().sealed_block().clone());
+                        let sealed_block = Arc::new(block.sealed_block().clone());
                         self.state.tree_state.insert_executed(block);
                         self.metrics.engine.inserted_already_executed_blocks.increment(1);
 
@@ -2265,7 +2262,8 @@ where
         block: RecoveredBlock<N::Block>,
         il: Option<Vec<RecoveredTx<TransactionSigned>>>,
     ) -> Result<InsertPayloadOk, InsertBlockErrorKind> {
-        debug!(target: "engine::tree", block=?block.num_hash(), parent = ?block.parent_hash(), state_root = ?block.state_root(), "Inserting new block into tree");
+        let block_num_hash = block.num_hash();
+        debug!(target: "engine::tree", block=?block_num_hash, parent = ?block.parent_hash(), state_root = ?block.state_root(), "Inserting new block into tree");
 
         if self.block_by_hash(block.hash())?.is_some() {
             return Ok(InsertPayloadOk::AlreadySeen(BlockStatus::Valid))
@@ -2273,11 +2271,12 @@ where
 
         let start = Instant::now();
 
-        trace!(target: "engine::tree", block=?block.num_hash(), "Validating block consensus");
+        trace!(target: "engine::tree", block=?block_num_hash, "Validating block consensus");
+
         // validate block consensus rules
         self.validate_block(&block)?;
 
-        trace!(target: "engine::tree", block=?block.num_hash(), parent=?block.parent_hash(), "Fetching block state provider");
+        trace!(target: "engine::tree", block=?block_num_hash, parent=?block.parent_hash(), "Fetching block state provider");
         let Some(state_provider) = self.state_provider(block.parent_hash())? else {
             // we don't have the state required to execute this block, buffering it and find the
             // missing parent block
@@ -2316,14 +2315,11 @@ where
         let state_provider =
             CachedStateProvider::new_with_caches(state_provider, caches, cache_metrics);
 
-        trace!(target: "engine::tree", block=?block.num_hash(), "Executing block");
-        let executor = self.executor_provider.executor(StateProviderDatabase::new(&state_provider));
-
-        let block_number = block.number();
-        let block_hash = block.hash();
         let sealed_block = Arc::new(block.clone_sealed_block());
         let exec_input = BlockExecutionInput::new(&block, il.unwrap_or_default());
+        trace!(target: "engine::tree", block=?block_num_hash, "Executing block");
 
+        let executor = self.executor_provider.executor(StateProviderDatabase::new(&state_provider));
         let persistence_not_in_progress = !self.persistence_state.in_progress();
 
         let (state_root_handle, state_root_task_config, state_hook) = if persistence_not_in_progress &&
@@ -2347,7 +2343,7 @@ where
         let execution_start = Instant::now();
         let output = self.metrics.executor.execute_metered(executor, exec_input, state_hook)?;
         let execution_time = execution_start.elapsed();
-        trace!(target: "engine::tree", elapsed = ?execution_time, ?block_number, "Executed block");
+        trace!(target: "engine::tree", elapsed = ?execution_time, number=?block_num_hash.number, "Executed block");
 
         if let Err(err) = self.consensus.validate_block_post_execution(
             &block,
@@ -2360,7 +2356,7 @@ where
 
         let hashed_state = self.provider.hashed_post_state(&output.state);
 
-        trace!(target: "engine::tree", block=?sealed_block.num_hash(), "Calculating block state root");
+        trace!(target: "engine::tree", block=?block_num_hash, "Calculating block state root");
         let root_time = Instant::now();
 
         // We attempt to compute state root in parallel if we are currently not persisting
@@ -2390,7 +2386,7 @@ where
                     Ok(result) => {
                         info!(
                             target: "engine::tree",
-                            block = ?sealed_block.num_hash(),
+                            block = ?block_num_hash,
                             regular_state_root = ?result.0,
                             "Regular root task finished"
                         );
@@ -2406,7 +2402,7 @@ where
                 }
             }
         } else {
-            debug!(target: "engine::tree", block=?sealed_block.num_hash(), ?persistence_not_in_progress, "Failed to compute state root in parallel");
+            debug!(target: "engine::tree", block=?block_num_hash, ?persistence_not_in_progress, "Failed to compute state root in parallel");
             let (root, updates) = state_provider.state_root_with_updates(hashed_state.clone())?;
             (root, updates, root_time.elapsed())
         };
@@ -2426,21 +2422,18 @@ where
         }
 
         self.metrics.block_validation.record_state_root(&trie_output, root_elapsed.as_secs_f64());
-        debug!(target: "engine::tree", ?root_elapsed, block=?sealed_block.num_hash(), "Calculated state root");
+        debug!(target: "engine::tree", ?root_elapsed, block=?block_num_hash, "Calculated state root");
 
         let executed: ExecutedBlock<N> = ExecutedBlock {
-            recovered_block: Arc::new(RecoveredBlock::new_sealed(
-                sealed_block.as_ref().clone(),
-                block.senders().to_vec(),
-            )),
-            execution_output: Arc::new(ExecutionOutcome::from((output, block_number))),
+            recovered_block: Arc::new(block),
+            execution_output: Arc::new(ExecutionOutcome::from((output, block_num_hash.number))),
             hashed_state: Arc::new(hashed_state),
             trie: Arc::new(trie_output),
         };
 
         if self.state.tree_state.canonical_block_hash() == executed.recovered_block().parent_hash()
         {
-            debug!(target: "engine::tree", pending = ?executed.recovered_block().num_hash() ,"updating pending block");
+            debug!(target: "engine::tree", pending=?block_num_hash, "updating pending block");
             // if the parent is the canonical head, we can insert the block as the pending block
             self.canonical_in_memory_state.set_pending_block(executed.clone());
         }
@@ -2450,14 +2443,14 @@ where
 
         // emit insert event
         let elapsed = start.elapsed();
-        let engine_event = if self.is_fork(block_hash)? {
+        let engine_event = if self.is_fork(block_num_hash.hash)? {
             BeaconConsensusEngineEvent::ForkBlockAdded(sealed_block, elapsed)
         } else {
             BeaconConsensusEngineEvent::CanonicalBlockAdded(sealed_block, elapsed)
         };
         self.emit_event(EngineApiEvent::BeaconConsensus(engine_event));
 
-        debug!(target: "engine::tree", block=?BlockNumHash::new(block_number, block_hash), "Finished inserting block");
+        debug!(target: "engine::tree", block=?block_num_hash, "Finished inserting block");
         Ok(InsertPayloadOk::Inserted(BlockStatus::Valid))
     }
 
