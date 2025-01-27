@@ -1,7 +1,7 @@
 use crate::{MessageValidationKind, PayloadAttributes};
 use alloc::vec::Vec;
 use alloy_eips::eip4895::Withdrawal;
-use alloy_primitives::B256;
+use alloy_primitives::{Bytes, B256};
 use alloy_rpc_types_engine::ExecutionPayload;
 
 /// Either an [`ExecutionPayload`] or a types that implements the [`PayloadAttributes`] trait.
@@ -65,7 +65,7 @@ where
     }
 
     /// Returns the IL for the payload or attributes.
-    pub fn il(&self) -> Option<&Vec<Vec<u8>>> {
+    pub fn il(&self) -> Option<&Vec<Bytes>> {
         match self {
             Self::ExecutionPayload { .. } => None,
             Self::PayloadAttributes(attributes) => attributes.il(),

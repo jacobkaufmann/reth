@@ -220,7 +220,7 @@ impl EthPayloadBuilderAttributes {
         let il = attributes.il.map(|il| {
             il.into_iter()
                 .map(|tx| {
-                    let Some(signed) = TransactionSigned::decode(&mut tx.as_slice()).ok() else {
+                    let Some(signed) = TransactionSigned::decode(&mut tx.as_ref()).ok() else {
                         return None;
                     };
                     let Ok(signer) = signed.recover_signer() else {

@@ -6,7 +6,7 @@ use alloy_eips::{
     eip4844::BlobAndProofV1,
     eip7685::{Requests, RequestsOrHash},
 };
-use alloy_primitives::{BlockHash, BlockNumber, B256, U64};
+use alloy_primitives::{BlockHash, BlockNumber, Bytes, B256, U64};
 use alloy_rlp::Encodable;
 use alloy_rpc_types_engine::{
     CancunPayloadFields, ClientVersionV1, ExecutionPayload, ExecutionPayloadBodiesV1,
@@ -258,7 +258,7 @@ where
         versioned_hashes: Vec<B256>,
         parent_beacon_block_root: B256,
         execution_requests: Requests,
-        il: Vec<Vec<u8>>,
+        il: Vec<Bytes>,
     ) -> EngineApiResult<PayloadStatus> {
         let payload = ExecutionPayload::from(payload);
         let payload_or_attrs =
@@ -295,7 +295,7 @@ where
         versioned_hashes: Vec<B256>,
         parent_beacon_block_root: B256,
         execution_requests: Requests,
-        il: Vec<Vec<u8>>,
+        il: Vec<Bytes>,
     ) -> RpcResult<PayloadStatus> {
         let start = Instant::now();
         let gas_used = payload.payload_inner.payload_inner.gas_used;
@@ -784,7 +784,7 @@ where
         versioned_hashes: Vec<B256>,
         parent_beacon_block_root: B256,
         execution_requests: Requests,
-        il: Vec<Vec<u8>>,
+        il: Vec<Bytes>,
     ) -> RpcResult<PayloadStatus> {
         trace!(target: "rpc::engine", "Serving engine_newPayloadV4");
         Ok(self
@@ -1017,7 +1017,7 @@ where
             .map_err(|err| EngineApiError::Internal(Box::new(err)))?)
     }
 
-    async fn get_inclusion_list_v1(&self, _parent_hash: B256) -> RpcResult<Vec<Vec<u8>>> {
+    async fn get_inclusion_list_v1(&self, _parent_hash: B256) -> RpcResult<Vec<Bytes>> {
         // TODO
         //
         // configure maximum elsewhere (e.g. global config)
@@ -1047,7 +1047,7 @@ where
             let mut buf = vec![0u8; tx_len];
             let tx = tx.to_consensus();
             tx.encode(&mut buf);
-            il.push(buf);
+            il.push(buf.into());
 
             il_size += tx_len;
         }
@@ -1058,7 +1058,7 @@ where
     async fn update_payload_with_inclusion_list_v1(
         &self,
         payload_id: PayloadId,
-        inclusion_list: Vec<Vec<u8>>,
+        inclusion_list: Vec<Bytes>,
     ) -> RpcResult<()> {
         Ok(self
             .inner

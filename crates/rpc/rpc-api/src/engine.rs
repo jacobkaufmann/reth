@@ -58,7 +58,7 @@ pub trait EngineApi<Engine: EngineTypes> {
         versioned_hashes: Vec<B256>,
         parent_beacon_block_root: B256,
         execution_requests: Requests,
-        il: Vec<Vec<u8>>,
+        il: Vec<Bytes>,
     ) -> RpcResult<PayloadStatus>;
 
     /// See also <https://github.com/ethereum/execution-apis/blob/6709c2a795b707202e93c4f2867fa0bf2640a84f/src/engine/paris.md#engine_forkchoiceupdatedv1>
@@ -221,14 +221,14 @@ pub trait EngineApi<Engine: EngineTypes> {
 
     /// Fetch the inclusion list (IL).
     #[method(name = "getInclusionListV1")]
-    async fn get_inclusion_list_v1(&self, parent_hash: B256) -> RpcResult<Vec<Vec<u8>>>;
+    async fn get_inclusion_list_v1(&self, parent_hash: B256) -> RpcResult<Vec<Bytes>>;
 
     /// Update the given payload with the given inclusion list (IL).
     #[method(name = "updatePayloadWithInclusionListV1")]
     async fn update_payload_with_inclusion_list_v1(
         &self,
         payload_id: PayloadId,
-        inclusion_list: Vec<Vec<u8>>,
+        inclusion_list: Vec<Bytes>,
     ) -> RpcResult<()>;
 }
 

@@ -2,6 +2,7 @@ use crate::{
     error::BeaconForkChoiceUpdateError, BeaconOnNewPayloadError, EngineApiMessageVersion,
     EngineTypes, ForkchoiceStatus,
 };
+use alloy_primitives::Bytes;
 use alloy_rpc_types_engine::{
     ExecutionPayload, ExecutionPayloadSidecar, ForkChoiceUpdateResult, ForkchoiceState,
     ForkchoiceUpdateError, ForkchoiceUpdated, PayloadId, PayloadStatus, PayloadStatusEnum,
@@ -170,7 +171,7 @@ pub enum BeaconEngineMessage<Engine: EngineTypes> {
         /// The payload to update.
         payload_id: PayloadId,
         /// The latest aggregate inclusion list.
-        inclusion_list: Vec<Vec<u8>>,
+        inclusion_list: Vec<Bytes>,
     },
 }
 
@@ -287,7 +288,7 @@ where
     pub fn update_payload_with_inclusion_list(
         &self,
         payload_id: PayloadId,
-        inclusion_list: Vec<Vec<u8>>,
+        inclusion_list: Vec<Bytes>,
     ) {
         let _ = self.to_engine.send(BeaconEngineMessage::UpdatePayloadWithInclusionList {
             payload_id,

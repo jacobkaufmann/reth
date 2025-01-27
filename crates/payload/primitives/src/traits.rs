@@ -3,7 +3,7 @@ use alloy_eips::{
     eip4895::{Withdrawal, Withdrawals},
     eip7685::Requests,
 };
-use alloy_primitives::{Address, B256, U256};
+use alloy_primitives::{Address, Bytes, B256, U256};
 use alloy_rpc_types_engine::{PayloadAttributes as EthPayloadAttributes, PayloadId};
 use core::fmt;
 use reth_chain_state::ExecutedBlock;
@@ -94,7 +94,7 @@ pub trait PayloadAttributes:
     fn parent_beacon_block_root(&self) -> Option<B256>;
 
     /// Returns the inclusion list for the payload attributes.
-    fn il(&self) -> Option<&Vec<Vec<u8>>>;
+    fn il(&self) -> Option<&Vec<Bytes>>;
 }
 
 impl PayloadAttributes for EthPayloadAttributes {
@@ -110,7 +110,7 @@ impl PayloadAttributes for EthPayloadAttributes {
         self.parent_beacon_block_root
     }
 
-    fn il(&self) -> Option<&Vec<Vec<u8>>> {
+    fn il(&self) -> Option<&Vec<Bytes>> {
         self.il.as_ref()
     }
 }
@@ -129,7 +129,7 @@ impl PayloadAttributes for op_alloy_rpc_types_engine::OpPayloadAttributes {
         self.payload_attributes.parent_beacon_block_root
     }
 
-    fn il(&self) -> Option<&Vec<Vec<u8>>> {
+    fn il(&self) -> Option<&Vec<Bytes>> {
         None
     }
 }

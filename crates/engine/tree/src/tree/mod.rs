@@ -12,7 +12,7 @@ use alloy_consensus::BlockHeader;
 use alloy_eips::BlockNumHash;
 use alloy_primitives::{
     map::{HashMap, HashSet},
-    BlockNumber, B256, U256,
+    BlockNumber, Bytes, B256, U256,
 };
 use alloy_rlp::Decodable;
 use alloy_rpc_types_engine::{
@@ -812,7 +812,7 @@ where
         let il: Option<Vec<RecoveredTx<TransactionSigned>>> = sidecar.il().map(|il| {
             il.into_iter()
                 .flat_map(|tx| {
-                    let Some(signed) = TransactionSigned::decode(&mut tx.as_slice()).ok() else {
+                    let Some(signed) = TransactionSigned::decode(&mut tx.as_ref()).ok() else {
                         return None;
                     };
                     let Ok(signer) = signed.recover_signer() else {
@@ -907,7 +907,7 @@ where
     fn on_update_payload_with_inclusion_list(
         &mut self,
         payload_id: PayloadId,
-        inclusion_list: Vec<Vec<u8>>,
+        inclusion_list: Vec<Bytes>,
     ) {
         let len = inclusion_list.len();
         info!(target: "engine::tree", payload=%payload_id, len=%len, "invoked update payload with inclusion list");
