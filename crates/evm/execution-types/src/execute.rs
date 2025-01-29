@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use alloy_eips::eip7685::Requests;
 use reth_primitives::TransactionSignedEcRecovered;
 use revm::db::BundleState;

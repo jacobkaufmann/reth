@@ -1044,7 +1044,7 @@ mod tests {
         let BlockExecutionOutput { receipts, requests, .. } = executor
             .execute(
                 &Block { header, body: BlockBody { transactions: vec![tx], ..Default::default() } }
-                    .with_recovered_senders()
+                    .try_into_recovered()
                     .unwrap(),
             )
             .unwrap();
@@ -1120,7 +1120,7 @@ mod tests {
         // Execute the block and capture the result
         let exec_result = executor.execute(
             &Block { header, body: BlockBody { transactions: vec![tx], ..Default::default() } }
-                .with_recovered_senders()
+                .try_into_recovered()
                 .unwrap(),
         );
 
