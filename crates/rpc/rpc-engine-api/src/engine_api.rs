@@ -31,7 +31,7 @@ use reth_tasks::TaskSpawner;
 use reth_transaction_pool::TransactionPool;
 use std::{sync::Arc, time::Instant};
 use tokio::sync::oneshot;
-use tracing::{trace, warn};
+use tracing::{trace, warn, info};
 
 /// The Engine API response sender.
 pub type EngineApiSender<Ok> = oneshot::Sender<EngineApiResult<Ok>>;
@@ -1018,6 +1018,8 @@ where
     }
 
     async fn get_inclusion_list_v1(&self, _parent_hash: B256) -> RpcResult<Vec<Bytes>> {
+        info!(target: "rpc::engine", "Serving engine_getInclusionListV1");
+
         // TODO
         //
         // configure maximum elsewhere (e.g. global config)
@@ -1060,6 +1062,7 @@ where
         payload_id: PayloadId,
         inclusion_list: Vec<Bytes>,
     ) -> RpcResult<()> {
+        info!(target: "rpc::engine", "Serving engine_updatePayloadWithInclusionListV1");
         Ok(self
             .inner
             .beacon_consensus
