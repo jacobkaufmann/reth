@@ -122,12 +122,12 @@ dependencies = [
 [[package]]
 name = "alloy-consensus"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-trie",
  "arbitrary",
  "auto_impl",
@@ -155,24 +155,24 @@ dependencies = [
 [[package]]
 name = "alloy-consensus-any"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "serde",
 ]
 
 [[package]]
 name = "alloy-contract"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-dyn-abi",
  "alloy-json-abi",
- "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-network-primitives",
  "alloy-primitives",
  "alloy-provider",
@@ -270,13 +270,13 @@ dependencies = [
 [[package]]
 name = "alloy-eips"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-eip2930",
  "alloy-eip7702",
  "alloy-primitives",
  "alloy-rlp",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "arbitrary",
  "c-kzg",
  "derive_more",
@@ -290,11 +290,11 @@ dependencies = [
 [[package]]
 name = "alloy-genesis"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-trie",
  "serde",
 ]
@@ -328,7 +328,7 @@ dependencies = [
 [[package]]
 name = "alloy-json-rpc"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -366,18 +366,18 @@ dependencies = [
 [[package]]
 name = "alloy-network"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-consensus",
- "alloy-consensus-any 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
- "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-consensus-any 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
+ "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-network-primitives",
  "alloy-primitives",
- "alloy-rpc-types-any 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-any 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-rpc-types-eth",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
- "alloy-signer 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
+ "alloy-signer 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-sol-types",
  "async-trait",
  "auto_impl",
@@ -390,19 +390,19 @@ dependencies = [
 [[package]]
 name = "alloy-network-primitives"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "serde",
 ]
 
 [[package]]
 name = "alloy-node-bindings"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-genesis",
  "alloy-primitives",
@@ -449,19 +449,19 @@ dependencies = [
 [[package]]
 name = "alloy-provider"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-chains",
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
- "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
- "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
+ "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
+ "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-network-primitives",
  "alloy-primitives",
  "alloy-pubsub",
  "alloy-rpc-client",
  "alloy-rpc-types-admin",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-rpc-types-eth",
  "alloy-transport",
  "alloy-transport-http",
@@ -489,9 +489,9 @@ dependencies = [
 [[package]]
 name = "alloy-pubsub"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
- "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-transport",
  "bimap",
@@ -529,9 +529,9 @@ dependencies = [
 [[package]]
 name = "alloy-rpc-client"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
- "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-pubsub",
  "alloy-transport",
@@ -553,19 +553,19 @@ dependencies = [
 [[package]]
 name = "alloy-rpc-types"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-primitives",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-rpc-types-eth",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "serde",
 ]
 
 [[package]]
 name = "alloy-rpc-types-admin"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-genesis",
  "alloy-primitives",
@@ -576,11 +576,11 @@ dependencies = [
 [[package]]
 name = "alloy-rpc-types-anvil"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-primitives",
  "alloy-rpc-types-eth",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "serde",
 ]
 
@@ -598,21 +598,21 @@ dependencies = [
 [[package]]
 name = "alloy-rpc-types-any"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
- "alloy-consensus-any 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-consensus-any 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-rpc-types-eth",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
 ]
 
 [[package]]
 name = "alloy-rpc-types-beacon"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "ethereum_ssz",
  "ethereum_ssz_derive",
  "serde",
@@ -623,7 +623,7 @@ dependencies = [
 [[package]]
 name = "alloy-rpc-types-debug"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-primitives",
  "serde",
@@ -650,13 +650,13 @@ dependencies = [
 [[package]]
 name = "alloy-rpc-types-engine"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "derive_more",
  "ethereum_ssz",
  "ethereum_ssz_derive",
@@ -670,15 +670,15 @@ dependencies = [
 [[package]]
 name = "alloy-rpc-types-eth"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-consensus",
- "alloy-consensus-any 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-consensus-any 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-network-primitives",
  "alloy-primitives",
  "alloy-rlp",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-sol-types",
  "arbitrary",
  "itertools 0.13.0",
@@ -691,12 +691,12 @@ dependencies = [
 [[package]]
 name = "alloy-rpc-types-mev"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rpc-types-eth",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "serde",
  "serde_json",
 ]
@@ -704,11 +704,11 @@ dependencies = [
 [[package]]
 name = "alloy-rpc-types-trace"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-primitives",
  "alloy-rpc-types-eth",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "serde",
  "serde_json",
  "thiserror 2.0.11",
@@ -717,11 +717,11 @@ dependencies = [
 [[package]]
 name = "alloy-rpc-types-txpool"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-primitives",
  "alloy-rpc-types-eth",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "serde",
 ]
 
@@ -740,7 +740,7 @@ dependencies = [
 [[package]]
 name = "alloy-serde"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-primitives",
  "arbitrary",
@@ -765,7 +765,7 @@ dependencies = [
 [[package]]
 name = "alloy-signer"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-primitives",
  "async-trait",
@@ -778,12 +778,12 @@ dependencies = [
 [[package]]
 name = "alloy-signer-local"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-consensus",
- "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-signer 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-signer 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "async-trait",
  "coins-bip32",
  "coins-bip39",
@@ -865,9 +865,9 @@ dependencies = [
 [[package]]
 name = "alloy-transport"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
- "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "base64 0.22.1",
  "futures-util",
  "futures-utils-wasm",
@@ -884,9 +884,9 @@ dependencies = [
 [[package]]
 name = "alloy-transport-http"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
- "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-transport",
  "reqwest",
  "serde_json",
@@ -898,9 +898,9 @@ dependencies = [
 [[package]]
 name = "alloy-transport-ipc"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
- "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-pubsub",
  "alloy-transport",
  "bytes",
@@ -916,7 +916,7 @@ dependencies = [
 [[package]]
 name = "alloy-transport-ws"
 version = "0.9.2"
-source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil#bd869e779bc81aae279f70f81ca0bd095ea16bea"
+source = "git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092#78c87868a8d5124e6a251f159eb7c3e972a204b1"
 dependencies = [
  "alloy-pubsub",
  "alloy-transport",
@@ -2810,7 +2810,7 @@ name = "ef-tests"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "rayon",
@@ -3041,7 +3041,7 @@ name = "example-custom-beacon-withdrawals"
 version = "0.0.0"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-sol-macro",
  "alloy-sol-types",
  "eyre",
@@ -3073,7 +3073,7 @@ dependencies = [
 name = "example-custom-engine-types"
 version = "0.0.0"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-genesis",
  "alloy-primitives",
  "alloy-rpc-types",
@@ -3118,7 +3118,7 @@ dependencies = [
 name = "example-custom-inspector"
 version = "0.0.0"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rpc-types-eth",
  "clap",
@@ -3144,7 +3144,7 @@ dependencies = [
 name = "example-custom-payload-builder"
 version = "0.0.0"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "eyre",
  "futures-util",
  "reth",
@@ -6523,7 +6523,7 @@ name = "reth"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "alloy-rpc-types",
@@ -6593,7 +6593,7 @@ name = "reth-basic-payload-builder"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "futures-core",
  "futures-util",
@@ -6619,13 +6619,13 @@ dependencies = [
 name = "reth-bench"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
- "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
+ "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-provider",
  "alloy-pubsub",
  "alloy-rpc-client",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-transport",
  "alloy-transport-http",
  "alloy-transport-ipc",
@@ -6656,9 +6656,9 @@ name = "reth-chain-state"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-signer 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-signer 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-signer-local",
  "derive_more",
  "metrics",
@@ -6686,7 +6686,7 @@ version = "1.1.5"
 dependencies = [
  "alloy-chains",
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-genesis",
  "alloy-primitives",
  "alloy-rlp",
@@ -6718,7 +6718,7 @@ version = "1.1.5"
 dependencies = [
  "ahash",
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "arbitrary",
@@ -6793,7 +6793,7 @@ dependencies = [
 name = "reth-cli-util"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "cfg-if",
  "eyre",
@@ -6813,7 +6813,7 @@ name = "reth-codecs"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-genesis",
  "alloy-primitives",
  "alloy-trie",
@@ -6863,7 +6863,7 @@ name = "reth-consensus"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "auto_impl",
  "derive_more",
@@ -6875,7 +6875,7 @@ name = "reth-consensus-common"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "rand 0.8.5",
  "reth-chainspec",
@@ -6889,10 +6889,10 @@ name = "reth-consensus-debug-client"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-provider",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-rpc-types-eth",
  "auto_impl",
  "eyre",
@@ -7009,7 +7009,7 @@ dependencies = [
 name = "reth-db-models"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "arbitrary",
  "bytes",
@@ -7106,7 +7106,7 @@ name = "reth-downloaders"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "assert_matches",
@@ -7145,13 +7145,13 @@ name = "reth-e2e-test-utils"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
- "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
+ "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-rpc-types-eth",
- "alloy-signer 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-signer 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-signer-local",
  "derive_more",
  "eyre",
@@ -7223,7 +7223,7 @@ version = "1.1.5"
 dependencies = [
  "alloy-consensus",
  "alloy-primitives",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "eyre",
  "futures-util",
  "op-alloy-rpc-types-engine",
@@ -7252,9 +7252,9 @@ name = "reth-engine-primitives"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "futures",
  "reth-errors",
  "reth-execution-types",
@@ -7301,10 +7301,10 @@ name = "reth-engine-tree"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "assert_matches",
  "codspeed-criterion-compat",
  "crossbeam-channel",
@@ -7331,6 +7331,7 @@ dependencies = [
  "reth-payload-builder",
  "reth-payload-builder-primitives",
  "reth-payload-primitives",
+ "reth-primitives",
  "reth-primitives-traits",
  "reth-provider",
  "reth-prune",
@@ -7359,9 +7360,9 @@ name = "reth-engine-util"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "eyre",
  "futures",
  "itertools 0.13.0",
@@ -7404,7 +7405,7 @@ name = "reth-eth-wire"
 version = "1.1.5"
 dependencies = [
  "alloy-chains",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "arbitrary",
@@ -7442,7 +7443,7 @@ version = "1.1.5"
 dependencies = [
  "alloy-chains",
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-genesis",
  "alloy-primitives",
  "alloy-rlp",
@@ -7477,7 +7478,7 @@ name = "reth-ethereum-consensus"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "reth-chainspec",
  "reth-consensus",
@@ -7491,10 +7492,10 @@ dependencies = [
 name = "reth-ethereum-engine-primitives"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "reth-chainspec",
  "reth-engine-primitives",
  "reth-payload-primitives",
@@ -7527,7 +7528,7 @@ name = "reth-ethereum-payload-builder"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "reth-basic-payload-builder",
  "reth-chainspec",
@@ -7552,12 +7553,12 @@ name = "reth-ethereum-primitives"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
- "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
+ "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "alloy-rpc-types",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "arbitrary",
  "bincode",
  "derive_more",
@@ -7591,7 +7592,7 @@ name = "reth-evm"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "auto_impl",
  "futures-util",
@@ -7618,7 +7619,7 @@ name = "reth-evm-ethereum"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-genesis",
  "alloy-primitives",
  "alloy-sol-types",
@@ -7642,7 +7643,7 @@ dependencies = [
 name = "reth-execution-errors"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "nybbles",
@@ -7658,7 +7659,7 @@ name = "reth-execution-types"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "arbitrary",
  "bincode",
@@ -7679,7 +7680,7 @@ name = "reth-exex"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-genesis",
  "alloy-primitives",
  "eyre",
@@ -7721,7 +7722,7 @@ dependencies = [
 name = "reth-exex-test-utils"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "eyre",
  "futures-util",
  "rand 0.8.5",
@@ -7754,7 +7755,7 @@ dependencies = [
 name = "reth-exex-types"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "arbitrary",
  "bincode",
@@ -7890,7 +7891,7 @@ name = "reth-network"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-node-bindings",
  "alloy-primitives",
  "alloy-provider",
@@ -7975,7 +7976,7 @@ name = "reth-network-p2p"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "auto_impl",
  "derive_more",
@@ -8043,7 +8044,7 @@ dependencies = [
 name = "reth-node-api"
 version = "1.1.5"
 dependencies = [
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "eyre",
  "reth-consensus",
  "reth-db-api",
@@ -8064,7 +8065,7 @@ name = "reth-node-builder"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rpc-types",
  "aquamarine",
@@ -8126,9 +8127,9 @@ name = "reth-node-core"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "clap",
  "derive_more",
  "dirs-next",
@@ -8177,14 +8178,14 @@ version = "1.1.5"
 dependencies = [
  "alloy-consensus",
  "alloy-contract",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-genesis",
  "alloy-primitives",
  "alloy-provider",
  "alloy-rpc-types-beacon",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-rpc-types-eth",
- "alloy-signer 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-signer 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-sol-types",
  "eyre",
  "futures",
@@ -8225,9 +8226,9 @@ name = "reth-node-events"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "derive_more",
  "futures",
  "humantime",
@@ -8284,7 +8285,7 @@ version = "1.1.5"
 dependencies = [
  "alloy-chains",
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-genesis",
  "alloy-primitives",
  "derive_more",
@@ -8305,7 +8306,7 @@ name = "reth-optimism-cli"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "clap",
@@ -8352,7 +8353,7 @@ name = "reth-optimism-consensus"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-trie",
  "op-alloy-consensus",
@@ -8372,7 +8373,7 @@ name = "reth-optimism-evm"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-genesis",
  "alloy-primitives",
  "derive_more",
@@ -8415,11 +8416,11 @@ name = "reth-optimism-node"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-genesis",
- "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-signer-local",
  "clap",
  "derive_more",
@@ -8472,11 +8473,11 @@ name = "reth-optimism-payload-builder"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "alloy-rpc-types-debug",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "derive_more",
  "op-alloy-consensus",
  "op-alloy-rpc-types-engine",
@@ -8511,7 +8512,7 @@ name = "reth-optimism-primitives"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "arbitrary",
@@ -8536,7 +8537,7 @@ name = "reth-optimism-rpc"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rpc-types-debug",
  "alloy-rpc-types-eth",
@@ -8615,7 +8616,7 @@ dependencies = [
 name = "reth-payload-builder-primitives"
 version = "1.1.5"
 dependencies = [
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "async-trait",
  "pin-project",
  "reth-payload-primitives",
@@ -8628,9 +8629,9 @@ dependencies = [
 name = "reth-payload-primitives"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "assert_matches",
  "op-alloy-rpc-types-engine",
  "reth-chain-state",
@@ -8667,7 +8668,7 @@ name = "reth-primitives"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-genesis",
  "alloy-primitives",
  "alloy-rlp",
@@ -8693,7 +8694,7 @@ name = "reth-primitives-traits"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-genesis",
  "alloy-primitives",
  "alloy-rlp",
@@ -8728,9 +8729,9 @@ name = "reth-provider"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "assert_matches",
  "auto_impl",
  "dashmap",
@@ -8777,7 +8778,7 @@ name = "reth-prune"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "assert_matches",
  "itertools 0.13.0",
@@ -8828,7 +8829,7 @@ name = "reth-revm"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "reth-ethereum-forks",
  "reth-primitives",
@@ -8844,22 +8845,22 @@ version = "1.1.5"
 dependencies = [
  "alloy-consensus",
  "alloy-dyn-abi",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-genesis",
- "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "alloy-rpc-types",
  "alloy-rpc-types-admin",
  "alloy-rpc-types-beacon",
  "alloy-rpc-types-debug",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-rpc-types-eth",
  "alloy-rpc-types-mev",
  "alloy-rpc-types-trace",
  "alloy-rpc-types-txpool",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
- "alloy-signer 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
+ "alloy-signer 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-signer-local",
  "async-trait",
  "derive_more",
@@ -8915,20 +8916,20 @@ dependencies = [
 name = "reth-rpc-api"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
- "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
+ "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rpc-types",
  "alloy-rpc-types-admin",
  "alloy-rpc-types-anvil",
  "alloy-rpc-types-beacon",
  "alloy-rpc-types-debug",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-rpc-types-eth",
  "alloy-rpc-types-mev",
  "alloy-rpc-types-trace",
  "alloy-rpc-types-txpool",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "jsonrpsee",
  "reth-engine-primitives",
  "reth-network-peers",
@@ -8939,7 +8940,7 @@ dependencies = [
 name = "reth-rpc-api-testing-util"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rpc-types-eth",
  "alloy-rpc-types-trace",
@@ -8958,9 +8959,9 @@ dependencies = [
 name = "reth-rpc-builder"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-rpc-types-eth",
  "alloy-rpc-types-trace",
  "clap",
@@ -9008,10 +9009,10 @@ dependencies = [
 name = "reth-rpc-engine-api"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "assert_matches",
  "async-trait",
  "jsonrpsee-core",
@@ -9047,14 +9048,14 @@ version = "1.1.5"
 dependencies = [
  "alloy-consensus",
  "alloy-dyn-abi",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
- "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
- "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
+ "alloy-json-rpc 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
+ "alloy-network 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "alloy-rpc-types-eth",
  "alloy-rpc-types-mev",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "async-trait",
  "auto_impl",
  "dyn-clone",
@@ -9089,7 +9090,7 @@ name = "reth-rpc-eth-types"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rpc-types-eth",
  "alloy-sol-types",
@@ -9131,7 +9132,7 @@ dependencies = [
 name = "reth-rpc-layer"
 version = "1.1.5"
 dependencies = [
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "http",
  "http-body-util",
  "jsonrpsee",
@@ -9148,9 +9149,9 @@ dependencies = [
 name = "reth-rpc-server-types"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "jsonrpsee-core",
  "jsonrpsee-types",
  "reth-errors",
@@ -9164,9 +9165,9 @@ name = "reth-rpc-types-compat"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-rpc-types-eth",
  "jsonrpsee-types",
  "reth-primitives",
@@ -9180,7 +9181,7 @@ name = "reth-stages"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "assert_matches",
@@ -9235,7 +9236,7 @@ dependencies = [
 name = "reth-stages-api"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "aquamarine",
  "assert_matches",
@@ -9318,9 +9319,9 @@ name = "reth-storage-api"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
- "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-rpc-types-engine 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "auto_impl",
  "reth-chainspec",
  "reth-db",
@@ -9341,7 +9342,7 @@ dependencies = [
 name = "reth-storage-errors"
 version = "1.1.5"
 dependencies = [
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "derive_more",
@@ -9374,7 +9375,7 @@ name = "reth-testing-utils"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-genesis",
  "alloy-primitives",
  "rand 0.8.5",
@@ -9411,7 +9412,7 @@ name = "reth-transaction-pool"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "aquamarine",
@@ -9459,7 +9460,7 @@ name = "reth-trie"
 version = "1.1.5"
 dependencies = [
  "alloy-consensus",
- "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-eips 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-primitives",
  "alloy-rlp",
  "alloy-trie",
@@ -9492,7 +9493,7 @@ dependencies = [
  "alloy-primitives",
  "alloy-rlp",
  "alloy-rpc-types-eth",
- "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil)",
+ "alloy-serde 0.9.2 (git+https://github.com/jacobkaufmann/alloy.git?branch=prague-focil-v092)",
  "alloy-trie",
  "arbitrary",
  "bincode",

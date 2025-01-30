@@ -433,19 +433,18 @@ where
         cumulative_gas_used += gas_used;
 
         #[allow(clippy::needless_update)]
-        receipts.push(Some(Receipt {
+        receipts.push(Receipt {
             tx_type: tx.tx_type(),
             success: result.is_success(),
             cumulative_gas_used,
             logs: result.into_logs().into_iter().map(Into::into).collect(),
             ..Default::default()
-        }));
+        });
 
         let miner_fee =
             tx.effective_tip_per_gas(base_fee).expect("fee is always valid; execution succeeded");
         total_fees += U256::from(miner_fee) * U256::from(gas_used);
 
-        executed_senders.push(tx.signer());
         executed_txs.push(tx.clone().into_tx());
 
         // NOTE
