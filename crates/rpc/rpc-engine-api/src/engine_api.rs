@@ -1061,12 +1061,16 @@ where
         &self,
         payload_id: PayloadId,
         inclusion_list: Vec<Bytes>,
-    ) -> RpcResult<()> {
+    ) -> RpcResult<Option<PayloadId>> {
         info!(target: "rpc::engine", "Serving engine_updatePayloadWithInclusionListV1");
-        Ok(self
+        self
             .inner
             .beacon_consensus
-            .update_payload_with_inclusion_list(payload_id, inclusion_list))
+            .update_payload_with_inclusion_list(payload_id, inclusion_list);
+
+        // TODO: handle case where `payload_id` is unknown
+        // TODO: handle error from prior call
+        Ok(Some(payload_id))
     }
 }
 
