@@ -258,7 +258,6 @@ where
         versioned_hashes: Vec<B256>,
         parent_beacon_block_root: B256,
         execution_requests: Requests,
-        il: Vec<Bytes>,
     ) -> EngineApiResult<PayloadStatus> {
         let payload = ExecutionPayload::from(payload);
         let payload_or_attrs =
@@ -280,7 +279,7 @@ where
                     CancunPayloadFields { versioned_hashes, parent_beacon_block_root },
                     PraguePayloadFields {
                         requests: RequestsOrHash::Requests(execution_requests),
-                        il,
+                        il: vec![],
                     },
                 ),
             )
@@ -295,7 +294,6 @@ where
         versioned_hashes: Vec<B256>,
         parent_beacon_block_root: B256,
         execution_requests: Requests,
-        il: Vec<Bytes>,
     ) -> RpcResult<PayloadStatus> {
         let start = Instant::now();
         let gas_used = payload.payload_inner.payload_inner.gas_used;
@@ -305,12 +303,70 @@ where
             versioned_hashes,
             parent_beacon_block_root,
             execution_requests,
-            il,
         )
         .await;
         let elapsed = start.elapsed();
         self.inner.metrics.latency.new_payload_v4.record(elapsed);
         self.inner.metrics.new_payload_response.update_response_metrics(&res, gas_used, elapsed);
+        Ok(res?)
+    }
+
+    /// Post EIP-7805 (FOCIL) payload handler
+    async fn new_payload_v5(
+        &self,
+        payload: ExecutionPayloadV3,
+        versioned_hashes: Vec<B256>,
+        parent_beacon_block_root: B256,
+        execution_requests: Requests,
+        inclusion_list: Vec<Bytes>,
+    ) -> EngineApiResult<PayloadStatus> {
+        let payload = ExecutionPayload::from(payload);
+        let payload_or_attrs =
+            PayloadOrAttributes::<'_, EngineT::PayloadAttributes>::from_execution_payload(
+                &payload,
+                Some(parent_beacon_block_root),
+            );
+        self.inner
+            .validator
+            .validate_version_specific_fields(EngineApiMessageVersion::V4, payload_or_attrs)?;
+
+        self.inner.validator.validate_execution_requests(&execution_requests)?;
+        Ok(self
+            .inner
+            .beacon_consensus
+            .new_payload(
+                payload,
+                ExecutionPayloadSidecar::v4(
+                    CancunPayloadFields { versioned_hashes, parent_beacon_block_root },
+                    PraguePayloadFields {
+                        requests: RequestsOrHash::Requests(execution_requests),
+                        il: inclusion_list,
+                    },
+                ),
+            )
+            .await
+            .inspect(|_| self.inner.on_new_payload_response())?)
+    }
+
+    /// Metrics version of `new_payload_v5`
+    async fn new_payload_v5_metered(
+        &self,
+        payload: ExecutionPayloadV3,
+        versioned_hashes: Vec<B256>,
+        parent_beacon_block_root: B256,
+        execution_requests: Requests,
+        inclusion_list: Vec<Bytes>,
+    ) -> RpcResult<PayloadStatus> {
+        // TODO: metrics
+        let res = Self::new_payload_v5(
+            self,
+            payload,
+            versioned_hashes,
+            parent_beacon_block_root,
+            execution_requests,
+            inclusion_list,
+        )
+        .await;
         Ok(res?)
     }
 
@@ -784,7 +840,6 @@ where
         versioned_hashes: Vec<B256>,
         parent_beacon_block_root: B256,
         execution_requests: Requests,
-        il: Vec<Bytes>,
     ) -> RpcResult<PayloadStatus> {
         trace!(target: "rpc::engine", "Serving engine_newPayloadV4");
         Ok(self
@@ -793,7 +848,27 @@ where
                 versioned_hashes,
                 parent_beacon_block_root,
                 execution_requests,
-                il,
+            )
+            .await?)
+    }
+
+    /// Handler for `engine_newPayloadV5`
+    async fn new_payload_v5(
+        &self,
+        payload: ExecutionPayloadV3,
+        versioned_hashes: Vec<B256>,
+        parent_beacon_block_root: B256,
+        execution_requests: Requests,
+        inclusion_list: Vec<Bytes>,
+    ) -> RpcResult<PayloadStatus> {
+        info!(target: "rpc::engine", "Serving engine_newPayloadV5");
+        Ok(self
+            .new_payload_v5_metered(
+                payload,
+                versioned_hashes,
+                parent_beacon_block_root,
+                execution_requests,
+                inclusion_list,
             )
             .await?)
     }

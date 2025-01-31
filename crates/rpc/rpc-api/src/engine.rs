@@ -58,7 +58,17 @@ pub trait EngineApi<Engine: EngineTypes> {
         versioned_hashes: Vec<B256>,
         parent_beacon_block_root: B256,
         execution_requests: Requests,
-        il: Vec<Bytes>,
+    ) -> RpcResult<PayloadStatus>;
+
+    /// Post EIP-7805 (FOCIL) payload handler
+    #[method(name = "newPayloadV5")]
+    async fn new_payload_v5(
+        &self,
+        payload: ExecutionPayloadV3,
+        versioned_hashes: Vec<B256>,
+        parent_beacon_block_root: B256,
+        execution_requests: Requests,
+        inclusion_list: Vec<Bytes>,
     ) -> RpcResult<PayloadStatus>;
 
     /// See also <https://github.com/ethereum/execution-apis/blob/6709c2a795b707202e93c4f2867fa0bf2640a84f/src/engine/paris.md#engine_forkchoiceupdatedv1>
