@@ -18,9 +18,8 @@ use alloy_primitives::{
 use core::fmt::Display;
 use reth_consensus::ConsensusError;
 use reth_primitives::{
-    BlockWithSenders, NodePrimitives, Receipt, RecoveredBlock, TransactionSignedEcRecovered,
+    BlockWithSenders, NodePrimitives, Receipt, Recovered, RecoveredBlock, TransactionSigned,
 };
-use reth_primitives_traits::Block;
 use reth_revm::batch::BlockBatchRecord;
 use revm::{
     db::{states::bundle_state::BundleRetention, BundleState},
@@ -233,7 +232,7 @@ pub trait BlockExecutionStrategy {
         &mut self,
         _block: &BlockWithSenders<<Self::Primitives as NodePrimitives>::Block>,
         _exec_output: &ExecuteOutput<<Self::Primitives as NodePrimitives>::Receipt>,
-        _il: impl AsRef<[TransactionSignedEcRecovered]>,
+        _il: impl AsRef<[Recovered<TransactionSigned>]>,
     ) -> Result<(), Self::Error> {
         Ok(())
     }

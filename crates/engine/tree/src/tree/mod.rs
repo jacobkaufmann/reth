@@ -41,7 +41,7 @@ use reth_evm::{
 use reth_payload_builder::{PayloadBuilderError, PayloadBuilderHandle};
 use reth_payload_builder_primitives::PayloadBuilder;
 use reth_payload_primitives::{EngineApiMessageVersion, PayloadBuilderAttributes};
-use reth_primitives::{RecoveredTx, SealedBlockFor, SealedBlockWithSenders, TransactionSigned};
+use reth_primitives::{Recovered, SealedBlockFor, SealedBlockWithSenders, TransactionSigned};
 use reth_primitives_traits::{
     Block, GotExpected, NodePrimitives, RecoveredBlock, SealedBlock, SealedHeader,
     SignedTransaction,
@@ -844,7 +844,7 @@ where
         //
         // we may not want to `flat_map` here so that IL indices of invalid transactions are
         // preserved.
-        let il: Option<Vec<RecoveredTx<TransactionSigned>>> = sidecar.il().map(|il| {
+        let il: Option<Vec<Recovered<TransactionSigned>>> = sidecar.il().map(|il| {
             il.into_iter()
                 .flat_map(|tx| {
                     let Some(signed) = TransactionSigned::decode(&mut tx.as_ref()).ok() else {
@@ -853,7 +853,7 @@ where
                     let Ok(signer) = signed.recover_signer() else {
                         return None;
                     };
-                    Some(RecoveredTx::new_unchecked(signed, signer))
+                    Some(Recovered::new_unchecked(signed, signer))
                 })
                 .collect()
         });
@@ -2331,7 +2331,7 @@ where
     fn insert_block_without_senders(
         &mut self,
         block: SealedBlock<N::Block>,
-        il: Option<Vec<RecoveredTx<TransactionSigned>>>,
+        il: Option<Vec<Recovered<TransactionSigned>>>,
     ) -> Result<InsertPayloadOk, InsertBlockError<N::Block>> {
         match block.try_recover() {
             Ok(block) => self.insert_block(block, il),
@@ -2342,7 +2342,7 @@ where
     fn insert_block(
         &mut self,
         block: RecoveredBlock<N::Block>,
-        il: Option<Vec<RecoveredTx<TransactionSigned>>>,
+        il: Option<Vec<Recovered<TransactionSigned>>>,
     ) -> Result<InsertPayloadOk, InsertBlockError<N::Block>> {
         self.insert_block_inner(block.clone(), il)
             .map_err(|kind| InsertBlockError::new(block.into_sealed_block(), kind))
@@ -2351,7 +2351,7 @@ where
     fn insert_block_inner(
         &mut self,
         block: RecoveredBlock<N::Block>,
-        il: Option<Vec<RecoveredTx<TransactionSigned>>>,
+        il: Option<Vec<Recovered<TransactionSigned>>>,
     ) -> Result<InsertPayloadOk, InsertBlockErrorKind> {
         let block_num_hash = block.num_hash();
         debug!(target: "engine::tree", block=?block_num_hash, parent = ?block.parent_hash(), state_root = ?block.state_root(), "Inserting new block into tree");

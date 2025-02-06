@@ -23,10 +23,7 @@ use reth_evm::{
     system_calls::{OnStateHook, SystemCaller},
     ConfigureEvm, Evm,
 };
-use reth_primitives::{
-    BlockWithSenders, EthPrimitives, Receipt, RecoveredBlock, RecoveredTx,
-    TransactionSignedEcRecovered,
-};
+use reth_primitives::{EthPrimitives, Receipt, Recovered, RecoveredBlock, TransactionSigned};
 use reth_primitives_traits::{BlockBody, SignedTransaction};
 use reth_revm::db::State;
 use revm_primitives::{
@@ -265,9 +262,9 @@ where
 
     fn validate_block_inclusion_list(
         &mut self,
-        block: &BlockWithSenders,
+        block: &RecoveredBlock<reth_primitives::Block>,
         exec_output: &ExecuteOutput,
-        il: impl AsRef<[TransactionSignedEcRecovered]>,
+        il: impl AsRef<[Recovered<TransactionSigned>]>,
     ) -> Result<(), Self::Error> {
         // collect the transaction hash for each transaction included in the block
         let txs: HashSet<_> = block.transactions_recovered().map(|tx| tx.tx().tx_hash()).collect();
@@ -292,7 +289,7 @@ where
             }
 
             // prepare the EVM to execute the transaction
-            let mut tx_env = self.evm_config.tx_env(tx.tx(), tx.signer());
+            let tx_env = self.evm_config.tx_env(tx.tx(), tx.signer());
 
             // if the transaction executes, then return an error
             //

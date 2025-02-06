@@ -10,7 +10,7 @@ use alloy_rpc_types_engine::{
 };
 use core::convert::Infallible;
 use reth_payload_primitives::{BuiltPayload, PayloadBuilderAttributes};
-use reth_primitives::{EthPrimitives, RecoveredTx, SealedBlock, TransactionSigned};
+use reth_primitives::{EthPrimitives, Recovered, SealedBlock, TransactionSigned};
 use reth_primitives_traits::transaction::signed::SignedTransaction;
 use reth_rpc_types_compat::engine::payload::{
     block_to_payload_v1, block_to_payload_v3, convert_block_to_payload_field_v2,
@@ -187,7 +187,7 @@ pub struct EthPayloadBuilderAttributes {
     /// Root of the parent beacon block
     pub parent_beacon_block_root: Option<B256>,
     /// Inclusion list for the generated payload.
-    pub il: Option<Vec<Option<RecoveredTx<TransactionSigned>>>>,
+    pub il: Option<Vec<Option<Recovered<TransactionSigned>>>>,
 }
 
 // === impl EthPayloadBuilderAttributes ===
@@ -214,7 +214,7 @@ impl EthPayloadBuilderAttributes {
                     let Ok(signer) = signed.recover_signer() else {
                         return None;
                     };
-                    Some(RecoveredTx::new_unchecked(signed, signer))
+                    Some(Recovered::new_unchecked(signed, signer))
                 })
                 .collect()
         });
@@ -275,7 +275,7 @@ impl PayloadBuilderAttributes for EthPayloadBuilderAttributes {
         &self.withdrawals
     }
 
-    fn il(&self) -> Option<&Vec<Option<RecoveredTx<TransactionSigned>>>> {
+    fn il(&self) -> Option<&Vec<Option<Recovered<TransactionSigned>>>> {
         self.il.as_ref()
     }
 

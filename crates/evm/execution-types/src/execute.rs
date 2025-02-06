@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 use alloy_eips::eip7685::Requests;
-use reth_primitives::TransactionSignedEcRecovered;
+use reth_primitives::{Recovered, TransactionSigned};
 use revm::db::BundleState;
 
 /// A helper type for ethereum block inputs that consists of a block and the total difficulty and
@@ -10,12 +10,12 @@ pub struct BlockExecutionInput<'a, Block> {
     /// The block to execute.
     pub block: &'a Block,
     /// The inclusion list (IL) that the block must satisfy.
-    pub il: Vec<TransactionSignedEcRecovered>,
+    pub il: Vec<Recovered<TransactionSigned>>,
 }
 
 impl<'a, Block> BlockExecutionInput<'a, Block> {
     /// Creates a new input.
-    pub const fn new(block: &'a Block, il: Vec<TransactionSignedEcRecovered>) -> Self {
+    pub const fn new(block: &'a Block, il: Vec<Recovered<TransactionSigned>>) -> Self {
         Self { block, il }
     }
 }
