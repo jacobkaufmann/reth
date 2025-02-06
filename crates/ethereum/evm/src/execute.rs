@@ -23,7 +23,10 @@ use reth_evm::{
     system_calls::{OnStateHook, SystemCaller},
     ConfigureEvm, Evm,
 };
-use reth_primitives::{BlockWithSenders, EthPrimitives, Receipt, RecoveredBlock, RecoveredTx, TransactionSignedEcRecovered};
+use reth_primitives::{
+    BlockWithSenders, EthPrimitives, Receipt, RecoveredBlock, RecoveredTx,
+    TransactionSignedEcRecovered,
+};
 use reth_primitives_traits::{BlockBody, SignedTransaction};
 use reth_revm::db::State;
 use revm_primitives::{

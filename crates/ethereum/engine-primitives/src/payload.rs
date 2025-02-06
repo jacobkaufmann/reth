@@ -2,7 +2,7 @@
 
 use alloc::{sync::Arc, vec::Vec};
 use alloy_eips::{eip4844::BlobTransactionSidecar, eip4895::Withdrawals, eip7685::Requests};
-use alloy_primitives::{Address, B256, U256};
+use alloy_primitives::{Address, Bytes, B256, U256};
 use alloy_rlp::{Decodable, Encodable};
 use alloy_rpc_types_engine::{
     ExecutionPayloadEnvelopeV2, ExecutionPayloadEnvelopeV3, ExecutionPayloadEnvelopeV4,
@@ -277,6 +277,18 @@ impl PayloadBuilderAttributes for EthPayloadBuilderAttributes {
 
     fn il(&self) -> Option<&Vec<Option<RecoveredTx<TransactionSigned>>>> {
         self.il.as_ref()
+    }
+
+    fn clone_with_il(&self, il: Vec<Bytes>) -> Self {
+        let attributes = PayloadAttributes {
+            timestamp: self.timestamp,
+            prev_randao: self.prev_randao,
+            suggested_fee_recipient: self.suggested_fee_recipient,
+            withdrawals: Some(self.withdrawals.0.clone()),
+            parent_beacon_block_root: self.parent_beacon_block_root,
+            il: Some(il),
+        };
+        Self::new(self.parent, attributes)
     }
 }
 

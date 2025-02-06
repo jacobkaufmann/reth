@@ -38,15 +38,13 @@ use reth_evm::{
     execute::{BlockExecutionInput, BlockExecutorProvider},
     system_calls::{NoopHook, OnStateHook},
 };
-use reth_payload_builder::PayloadBuilderHandle;
+use reth_payload_builder::{PayloadBuilderError, PayloadBuilderHandle};
 use reth_payload_builder_primitives::PayloadBuilder;
 use reth_payload_primitives::{EngineApiMessageVersion, PayloadBuilderAttributes};
-use reth_primitives::{
-    RecoveredTx, SealedBlockFor,
-    SealedBlockWithSenders, TransactionSigned,
-};
+use reth_primitives::{RecoveredTx, SealedBlockFor, SealedBlockWithSenders, TransactionSigned};
 use reth_primitives_traits::{
-    Block, GotExpected, NodePrimitives, RecoveredBlock, SealedBlock, SealedHeader, SignedTransaction,
+    Block, GotExpected, NodePrimitives, RecoveredBlock, SealedBlock, SealedHeader,
+    SignedTransaction,
 };
 use reth_provider::{
     providers::ConsistentDbView, BlockReader, DBProvider, DatabaseProviderFactory,
@@ -945,9 +943,10 @@ where
         &mut self,
         payload_id: PayloadId,
         inclusion_list: Vec<Bytes>,
-    ) {
+    ) -> oneshot::Receiver<Result<PayloadId, PayloadBuilderError>> {
         let len = inclusion_list.len();
         info!(target: "engine::tree", payload=%payload_id, len=%len, "invoked update payload with inclusion list");
+        self.payload_builder.update_payload_with_inclusion_list(payload_id, inclusion_list)
     }
 
     /// Returns the new chain for the given head.
@@ -1442,11 +1441,15 @@ where
                             BeaconEngineMessage::UpdatePayloadWithInclusionList {
                                 payload_id,
                                 inclusion_list,
+                                tx,
                             } => {
-                                self.on_update_payload_with_inclusion_list(
+                                let res = self.on_update_payload_with_inclusion_list(
                                     payload_id,
                                     inclusion_list,
                                 );
+                                if let Err(err) = tx.send(res) {
+                                    error!(target: "engine::tree", "Failed to send event: {err:?}");
+                                }
                             }
                         }
                     }

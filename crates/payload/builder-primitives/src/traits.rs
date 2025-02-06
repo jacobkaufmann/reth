@@ -1,4 +1,5 @@
 use crate::{PayloadBuilderError, PayloadEvents};
+use alloy_primitives::Bytes;
 use alloy_rpc_types_engine::PayloadId;
 use reth_payload_primitives::{PayloadKind, PayloadTypes};
 use std::fmt::Debug;
@@ -108,4 +109,10 @@ pub trait PayloadBuilder: Debug + Send + Sync + Unpin {
         &self,
         id: PayloadId,
     ) -> Option<Result<<Self::PayloadType as PayloadTypes>::PayloadBuilderAttributes, Self::Error>>;
+
+    fn update_payload_with_inclusion_list(
+        &self,
+        payload_id: PayloadId,
+        inclusion_list: Vec<Bytes>,
+    ) -> oneshot::Receiver<Result<PayloadId, Self::Error>>;
 }

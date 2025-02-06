@@ -3,7 +3,7 @@
 use core::fmt::Display;
 use reth_execution_errors::BlockExecutionError;
 use reth_execution_types::{BlockExecutionInput, BlockExecutionOutput, ExecutionOutcome};
-use reth_primitives::{RecoveredBlock, NodePrimitives};
+use reth_primitives::{NodePrimitives, RecoveredBlock};
 use reth_storage_errors::provider::ProviderError;
 use revm::State;
 use revm_primitives::db::Database;

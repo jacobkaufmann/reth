@@ -646,12 +646,9 @@ where
 
                 let exec_input = BlockExecutionInput::new(block.as_ref(), vec![]);
                 let _ = block_executor
-                    .execute_with_state_closure(
-                        exec_input,
-                        |statedb: &State<_>| {
-                            witness_record.record_executed_state(statedb);
-                        },
-                    )
+                    .execute_with_state_closure(exec_input, |statedb: &State<_>| {
+                        witness_record.record_executed_state(statedb);
+                    })
                     .map_err(|err| EthApiError::Internal(err.into()))?;
 
                 let ExecutionWitnessRecord { hashed_state, codes, keys } = witness_record;

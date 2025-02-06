@@ -21,7 +21,10 @@ use reth_basic_payload_builder::{
 };
 use reth_chainspec::{ChainSpec, ChainSpecProvider};
 use reth_errors::{ProviderError, RethError};
-use reth_evm::{env::EvmEnv, system_calls::SystemCaller, ConfigureEvm, ConfigureEvmEnv, Evm, NextBlockEnvAttributes};
+use reth_evm::{
+    env::EvmEnv, system_calls::SystemCaller, ConfigureEvm, ConfigureEvmEnv, Evm,
+    NextBlockEnvAttributes,
+};
 use reth_evm_ethereum::{eip6110::parse_deposits_from_receipts, EthEvm, EthEvmConfig};
 use reth_execution_types::ExecutionOutcome;
 use reth_payload_builder::{EthBuiltPayload, EthPayloadBuilderAttributes};
@@ -599,4 +602,3 @@ where
 
     Ok(BuildOutcome::Better { payload, cached_reads })
 }
-

@@ -1,6 +1,7 @@
 use crate::{
-    error::BeaconForkChoiceUpdateError, BeaconOnNewPayloadError, EngineApiMessageVersion,
-    EngineTypes, ForkchoiceStatus,
+    error::BeaconForkChoiceUpdateError, BeaconOnNewPayloadError,
+    BeaconUpdatePayloadWithInclusionListError, EngineApiMessageVersion, EngineTypes,
+    ForkchoiceStatus,
 };
 use alloy_primitives::Bytes;
 use alloy_rpc_types_engine::{
@@ -172,6 +173,8 @@ pub enum BeaconEngineMessage<Engine: EngineTypes> {
         payload_id: PayloadId,
         /// The latest aggregate inclusion list.
         inclusion_list: Vec<Bytes>,
+        /// The sender for returning updated payload result.
+        tx: oneshot::Sender<oneshot::Receiver<Result<PayloadId, PayloadBuilderError>>>,
     },
 }
 
@@ -285,14 +288,26 @@ where
     }
 
     /// Sends a new inclusion list message to the beacon consensus engine.
-    pub fn update_payload_with_inclusion_list(
+    pub async fn update_payload_with_inclusion_list(
         &self,
         payload_id: PayloadId,
         inclusion_list: Vec<Bytes>,
-    ) {
+    ) -> Result<PayloadId, BeaconUpdatePayloadWithInclusionListError> {
+        let (tx, rx) = oneshot::channel();
+
         let _ = self.to_engine.send(BeaconEngineMessage::UpdatePayloadWithInclusionList {
             payload_id,
             inclusion_list,
+            tx,
         });
+
+        match rx.await {
+            Ok(rx) => match rx.await {
+                Ok(Ok(res)) => Ok(res),
+                Ok(Err(err)) => Err(BeaconUpdatePayloadWithInclusionListError::internal(err)),
+                Err(_err) => Err(BeaconUpdatePayloadWithInclusionListError::EngineUnavailable),
+            },
+            Err(_err) => Err(BeaconUpdatePayloadWithInclusionListError::EngineUnavailable),
+        }
     }
 }

@@ -31,7 +31,7 @@ use reth_tasks::TaskSpawner;
 use reth_transaction_pool::TransactionPool;
 use std::{sync::Arc, time::Instant};
 use tokio::sync::oneshot;
-use tracing::{trace, warn, info};
+use tracing::{info, trace, warn};
 
 /// The Engine API response sender.
 pub type EngineApiSender<Ok> = oneshot::Sender<EngineApiResult<Ok>>;
@@ -1138,13 +1138,12 @@ where
         inclusion_list: Vec<Bytes>,
     ) -> RpcResult<Option<PayloadId>> {
         info!(target: "rpc::engine", "Serving engine_updatePayloadWithInclusionListV1");
-        self
+        let payload_id = self
             .inner
             .beacon_consensus
-            .update_payload_with_inclusion_list(payload_id, inclusion_list);
-
-        // TODO: handle case where `payload_id` is unknown
-        // TODO: handle error from prior call
+            .update_payload_with_inclusion_list(payload_id, inclusion_list)
+            .await
+            .map_err(|err| EngineApiError::Internal(Box::new(err)))?;
         Ok(Some(payload_id))
     }
 }

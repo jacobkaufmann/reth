@@ -17,7 +17,9 @@ use alloy_primitives::{
 };
 use core::fmt::Display;
 use reth_consensus::ConsensusError;
-use reth_primitives::{BlockWithSenders, NodePrimitives, Receipt, RecoveredBlock, TransactionSignedEcRecovered};
+use reth_primitives::{
+    BlockWithSenders, NodePrimitives, Receipt, RecoveredBlock, TransactionSignedEcRecovered,
+};
 use reth_primitives_traits::Block;
 use reth_revm::batch::BlockBatchRecord;
 use revm::{
