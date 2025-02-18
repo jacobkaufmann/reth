@@ -10,7 +10,7 @@ use reth_db::tables;
 use reth_db_api::{transaction::DbTxMut, DatabaseError};
 use reth_etl::Collector;
 use reth_primitives::{
-    Account, Bytecode, GotExpected, NodePrimitives, Receipts, StaticFileSegment, StorageEntry,
+    Account, Bytecode, GotExpected, NodePrimitives, StaticFileSegment, StorageEntry,
 };
 use reth_provider::{
     errors::provider::ProviderResult, providers::StaticFileWriter, writer::UnifiedStorageWriter,
@@ -246,7 +246,7 @@ where
         state_init,
         all_reverts_init,
         contracts,
-        Receipts::default(),
+        Vec::default(),
         block,
         Vec::new(),
     );
@@ -724,7 +724,6 @@ mod tests {
                 ..Default::default()
             },
             hardforks: Default::default(),
-            genesis_hash: Default::default(),
             paris_block_and_final_difficulty: None,
             deposit_contract: None,
             ..Default::default()

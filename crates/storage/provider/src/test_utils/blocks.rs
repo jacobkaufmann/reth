@@ -16,7 +16,8 @@ use reth_primitives::{
     TransactionSigned, TxType,
 };
 use reth_trie::root::{state_root_unhashed, storage_root_unhashed};
-use revm::{db::BundleState, primitives::AccountInfo};
+use revm_database::BundleState;
+use revm_state::AccountInfo;
 use std::{str::FromStr, sync::LazyLock};
 
 /// Assert genesis block
@@ -220,8 +221,7 @@ fn block1(number: BlockNumber) -> (RecoveredBlock<reth_primitives::Block>, Execu
                 )],
                 ..Default::default()
             },
-        ]]
-        .into(),
+        ]],
         number,
         Vec::new(),
     );
@@ -279,8 +279,7 @@ fn block2(
                 )],
                 ..Default::default()
             },
-        ]]
-        .into(),
+        ]],
         number,
         Vec::new(),
     );
@@ -347,8 +346,7 @@ fn block3(
                 )],
                 ..Default::default()
             },
-        ]]
-        .into(),
+        ]],
         number,
         Vec::new(),
     );
@@ -435,8 +433,7 @@ fn block4(
                 )],
                 ..Default::default()
             },
-        ]]
-        .into(),
+        ]],
         number,
         Vec::new(),
     );
@@ -520,8 +517,7 @@ fn block5(
                 )],
                 ..Default::default()
             },
-        ]]
-        .into(),
+        ]],
         number,
         Vec::new(),
     );

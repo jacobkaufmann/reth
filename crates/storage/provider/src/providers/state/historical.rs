@@ -3,9 +3,7 @@ use crate::{
     HashedPostStateProvider, ProviderError, StateProvider, StateRootProvider,
 };
 use alloy_eips::merge::EPOCH_SLOTS;
-use alloy_primitives::{
-    map::B256HashMap, Address, BlockNumber, Bytes, StorageKey, StorageValue, B256,
-};
+use alloy_primitives::{map::B256Map, Address, BlockNumber, Bytes, StorageKey, StorageValue, B256};
 use reth_db::{tables, BlockNumberList};
 use reth_db_api::{
     cursor::{DbCursorRO, DbDupCursorRO},
@@ -388,7 +386,7 @@ impl<Provider: DBProvider + BlockNumReader + StateCommitmentProvider> StateProof
         &self,
         mut input: TrieInput,
         target: HashedPostState,
-    ) -> ProviderResult<B256HashMap<Bytes>> {
+    ) -> ProviderResult<B256Map<Bytes>> {
         input.prepend(self.revert_state()?);
         TrieWitness::overlay_witness(self.tx(), input, target).map_err(ProviderError::from)
     }
@@ -397,7 +395,7 @@ impl<Provider: DBProvider + BlockNumReader + StateCommitmentProvider> StateProof
 impl<Provider: StateCommitmentProvider> HashedPostStateProvider
     for HistoricalStateProviderRef<'_, Provider>
 {
-    fn hashed_post_state(&self, bundle_state: &revm::db::BundleState) -> HashedPostState {
+    fn hashed_post_state(&self, bundle_state: &revm_database::BundleState) -> HashedPostState {
         HashedPostState::from_bundle_state::<
             <Provider::StateCommitment as StateCommitment>::KeyHasher,
         >(bundle_state.state())

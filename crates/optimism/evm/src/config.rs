@@ -1,39 +1,38 @@
 use alloy_consensus::Header;
-use reth_optimism_chainspec::OpChainSpec;
-use reth_optimism_forks::OpHardfork;
+use reth_optimism_forks::OpHardforks;
+use revm_optimism::OpSpecId;
 
-/// Map the latest active hardfork at the given header to a revm
-/// [`SpecId`](revm_primitives::SpecId).
-pub fn revm_spec(chain_spec: &OpChainSpec, header: &Header) -> revm_primitives::SpecId {
+/// Map the latest active hardfork at the given header to a revm [`OpSpecId`].
+pub fn revm_spec(chain_spec: impl OpHardforks, header: &Header) -> OpSpecId {
     revm_spec_by_timestamp_after_bedrock(chain_spec, header.timestamp)
 }
 
-/// Returns the revm [`SpecId`](revm_primitives::SpecId) at the given timestamp.
+/// Returns the revm [`OpSpecId`] at the given timestamp.
 ///
 /// # Note
 ///
 /// This is only intended to be used after the Bedrock, when hardforks are activated by
 /// timestamp.
 pub fn revm_spec_by_timestamp_after_bedrock(
-    chain_spec: &OpChainSpec,
+    chain_spec: impl OpHardforks,
     timestamp: u64,
-) -> revm_primitives::SpecId {
-    if chain_spec.fork(OpHardfork::Isthmus).active_at_timestamp(timestamp) {
-        revm_primitives::ISTHMUS
-    } else if chain_spec.fork(OpHardfork::Holocene).active_at_timestamp(timestamp) {
-        revm_primitives::HOLOCENE
-    } else if chain_spec.fork(OpHardfork::Granite).active_at_timestamp(timestamp) {
-        revm_primitives::GRANITE
-    } else if chain_spec.fork(OpHardfork::Fjord).active_at_timestamp(timestamp) {
-        revm_primitives::FJORD
-    } else if chain_spec.fork(OpHardfork::Ecotone).active_at_timestamp(timestamp) {
-        revm_primitives::ECOTONE
-    } else if chain_spec.fork(OpHardfork::Canyon).active_at_timestamp(timestamp) {
-        revm_primitives::CANYON
-    } else if chain_spec.fork(OpHardfork::Regolith).active_at_timestamp(timestamp) {
-        revm_primitives::REGOLITH
+) -> OpSpecId {
+    if chain_spec.is_isthmus_active_at_timestamp(timestamp) {
+        OpSpecId::ISTHMUS
+    } else if chain_spec.is_holocene_active_at_timestamp(timestamp) {
+        OpSpecId::HOLOCENE
+    } else if chain_spec.is_granite_active_at_timestamp(timestamp) {
+        OpSpecId::GRANITE
+    } else if chain_spec.is_fjord_active_at_timestamp(timestamp) {
+        OpSpecId::FJORD
+    } else if chain_spec.is_ecotone_active_at_timestamp(timestamp) {
+        OpSpecId::ECOTONE
+    } else if chain_spec.is_canyon_active_at_timestamp(timestamp) {
+        OpSpecId::CANYON
+    } else if chain_spec.is_regolith_active_at_timestamp(timestamp) {
+        OpSpecId::REGOLITH
     } else {
-        revm_primitives::BEDROCK
+        OpSpecId::BEDROCK
     }
 }
 
@@ -51,36 +50,36 @@ mod tests {
             f(cs).build()
         }
         assert_eq!(
-            revm_spec_by_timestamp_after_bedrock(&op_cs(|cs| cs.isthmus_activated()), 0),
-            revm_primitives::ISTHMUS
+            revm_spec_by_timestamp_after_bedrock(op_cs(|cs| cs.isthmus_activated()), 0),
+            OpSpecId::ISTHMUS
         );
         assert_eq!(
-            revm_spec_by_timestamp_after_bedrock(&op_cs(|cs| cs.holocene_activated()), 0),
-            revm_primitives::HOLOCENE
+            revm_spec_by_timestamp_after_bedrock(op_cs(|cs| cs.holocene_activated()), 0),
+            OpSpecId::HOLOCENE
         );
         assert_eq!(
-            revm_spec_by_timestamp_after_bedrock(&op_cs(|cs| cs.granite_activated()), 0),
-            revm_primitives::GRANITE
+            revm_spec_by_timestamp_after_bedrock(op_cs(|cs| cs.granite_activated()), 0),
+            OpSpecId::GRANITE
         );
         assert_eq!(
-            revm_spec_by_timestamp_after_bedrock(&op_cs(|cs| cs.fjord_activated()), 0),
-            revm_primitives::FJORD
+            revm_spec_by_timestamp_after_bedrock(op_cs(|cs| cs.fjord_activated()), 0),
+            OpSpecId::FJORD
         );
         assert_eq!(
-            revm_spec_by_timestamp_after_bedrock(&op_cs(|cs| cs.ecotone_activated()), 0),
-            revm_primitives::ECOTONE
+            revm_spec_by_timestamp_after_bedrock(op_cs(|cs| cs.ecotone_activated()), 0),
+            OpSpecId::ECOTONE
         );
         assert_eq!(
-            revm_spec_by_timestamp_after_bedrock(&op_cs(|cs| cs.canyon_activated()), 0),
-            revm_primitives::CANYON
+            revm_spec_by_timestamp_after_bedrock(op_cs(|cs| cs.canyon_activated()), 0),
+            OpSpecId::CANYON
         );
         assert_eq!(
-            revm_spec_by_timestamp_after_bedrock(&op_cs(|cs| cs.bedrock_activated()), 0),
-            revm_primitives::BEDROCK
+            revm_spec_by_timestamp_after_bedrock(op_cs(|cs| cs.bedrock_activated()), 0),
+            OpSpecId::BEDROCK
         );
         assert_eq!(
-            revm_spec_by_timestamp_after_bedrock(&op_cs(|cs| cs.regolith_activated()), 0),
-            revm_primitives::REGOLITH
+            revm_spec_by_timestamp_after_bedrock(op_cs(|cs| cs.regolith_activated()), 0),
+            OpSpecId::REGOLITH
         );
     }
 
@@ -92,36 +91,36 @@ mod tests {
             f(cs).build()
         }
         assert_eq!(
-            revm_spec(&op_cs(|cs| cs.isthmus_activated()), &Default::default()),
-            revm_primitives::ISTHMUS
+            revm_spec(op_cs(|cs| cs.isthmus_activated()), &Default::default()),
+            OpSpecId::ISTHMUS
         );
         assert_eq!(
-            revm_spec(&op_cs(|cs| cs.holocene_activated()), &Default::default()),
-            revm_primitives::HOLOCENE
+            revm_spec(op_cs(|cs| cs.holocene_activated()), &Default::default()),
+            OpSpecId::HOLOCENE
         );
         assert_eq!(
-            revm_spec(&op_cs(|cs| cs.granite_activated()), &Default::default()),
-            revm_primitives::GRANITE
+            revm_spec(op_cs(|cs| cs.granite_activated()), &Default::default()),
+            OpSpecId::GRANITE
         );
         assert_eq!(
-            revm_spec(&op_cs(|cs| cs.fjord_activated()), &Default::default()),
-            revm_primitives::FJORD
+            revm_spec(op_cs(|cs| cs.fjord_activated()), &Default::default()),
+            OpSpecId::FJORD
         );
         assert_eq!(
-            revm_spec(&op_cs(|cs| cs.ecotone_activated()), &Default::default()),
-            revm_primitives::ECOTONE
+            revm_spec(op_cs(|cs| cs.ecotone_activated()), &Default::default()),
+            OpSpecId::ECOTONE
         );
         assert_eq!(
-            revm_spec(&op_cs(|cs| cs.canyon_activated()), &Default::default()),
-            revm_primitives::CANYON
+            revm_spec(op_cs(|cs| cs.canyon_activated()), &Default::default()),
+            OpSpecId::CANYON
         );
         assert_eq!(
-            revm_spec(&op_cs(|cs| cs.bedrock_activated()), &Default::default()),
-            revm_primitives::BEDROCK
+            revm_spec(op_cs(|cs| cs.bedrock_activated()), &Default::default()),
+            OpSpecId::BEDROCK
         );
         assert_eq!(
-            revm_spec(&op_cs(|cs| cs.regolith_activated()), &Default::default()),
-            revm_primitives::REGOLITH
+            revm_spec(op_cs(|cs| cs.regolith_activated()), &Default::default()),
+            OpSpecId::REGOLITH
         );
     }
 }

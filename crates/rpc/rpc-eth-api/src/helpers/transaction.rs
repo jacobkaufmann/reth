@@ -38,8 +38,7 @@ use std::sync::Arc;
 /// There are subtle differences between when transacting [`TransactionRequest`]:
 ///
 /// The endpoints `eth_call` and `eth_estimateGas` and `eth_createAccessList` should always
-/// __disable__ the base fee check in the
-/// [`EnvWithHandlerCfg`](revm_primitives::CfgEnvWithHandlerCfg).
+/// __disable__ the base fee check in the [`CfgEnv`](revm::context::CfgEnv).
 ///
 /// The behaviour for tracing endpoints is not consistent across clients.
 /// Geth also disables the basefee check for tracing: <https://github.com/ethereum/go-ethereum/blob/bc0b87ca196f92e5af49bd33cc190ef0ec32b197/eth/tracers/api.go#L955-L955>
@@ -217,7 +216,7 @@ pub trait EthTransactions: LoadTransaction<Provider: BlockReaderIdExt> {
                         hash: Some(*tx.tx_hash()),
                         block_hash: Some(block_hash),
                         block_number: Some(block_number),
-                        base_fee: base_fee_per_gas.map(u128::from),
+                        base_fee: base_fee_per_gas,
                         index: Some(index as u64),
                     };
 
@@ -296,7 +295,7 @@ pub trait EthTransactions: LoadTransaction<Provider: BlockReaderIdExt> {
                                 hash: Some(*tx.tx_hash()),
                                 block_hash: Some(block_hash),
                                 block_number: Some(block_number),
-                                base_fee: base_fee_per_gas.map(u128::from),
+                                base_fee: base_fee_per_gas,
                                 index: Some(index as u64),
                             };
                             self.tx_resp_builder().fill(tx.clone().with_signer(*signer), tx_info)

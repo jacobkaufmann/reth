@@ -2,7 +2,8 @@ use alloc::vec::Vec;
 pub use alloy_consensus::{transaction::PooledTransaction, TxType};
 use alloy_consensus::{
     transaction::RlpEcdsaTx, BlobTransactionSidecar, SignableTransaction, Signed, TxEip1559,
-    TxEip2930, TxEip4844, TxEip4844WithSidecar, TxEip7702, TxLegacy, Typed2718, TypedTransaction,
+    TxEip2930, TxEip4844, TxEip4844Variant, TxEip4844WithSidecar, TxEip7702, TxEnvelope, TxLegacy,
+    Typed2718, TypedTransaction,
 };
 use alloy_eips::{
     eip2718::{Decodable2718, Eip2718Error, Eip2718Result, Encodable2718},
@@ -14,18 +15,14 @@ use alloy_primitives::{
 };
 use alloy_rlp::{Decodable, Encodable};
 use core::hash::{Hash, Hasher};
-use once_cell as _;
-#[cfg(not(feature = "std"))]
-use once_cell::sync::OnceCell as OnceLock;
 use reth_primitives_traits::{
     crypto::secp256k1::{recover_signer, recover_signer_unchecked},
+    sync::OnceLock,
     transaction::{error::TransactionConversionError, signed::RecoveryError},
     FillTxEnv, InMemorySize, SignedTransaction,
 };
-use revm_primitives::{AuthorizationList, TxEnv};
+use revm_context::TxEnv;
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "std")]
-use std::sync::OnceLock;
 
 macro_rules! delegate {
     ($self:expr => $tx:ident.$method:ident($($arg:expr),*)) => {
@@ -36,6 +33,19 @@ macro_rules! delegate {
             Transaction::Eip4844($tx) => $tx.$method($($arg),*),
             Transaction::Eip7702($tx) => $tx.$method($($arg),*),
         }
+    };
+}
+
+macro_rules! impl_from_signed {
+    ($($tx:ident),*) => {
+        $(
+            impl From<Signed<$tx>> for TransactionSigned {
+                fn from(value: Signed<$tx>) -> Self {
+                    let(tx,sig,hash) = value.into_parts();
+                    Self::new(tx.into(), sig, hash)
+                }
+            }
+        )*
     };
 }
 
@@ -404,6 +414,12 @@ impl TransactionSigned {
     pub fn transaction_mut(&mut self) -> &mut Transaction {
         &mut self.transaction
     }
+
+    /// Splits the transaction into parts.
+    pub fn into_parts(self) -> (Transaction, Signature, B256) {
+        let hash = *self.hash.get_or_init(|| self.recalculate_hash());
+        (self.transaction, self.signature, hash)
+    }
 }
 
 impl Typed2718 for TransactionSigned {
@@ -479,6 +495,72 @@ impl alloy_consensus::Transaction for TransactionSigned {
 
     fn authorization_list(&self) -> Option<&[SignedAuthorization]> {
         self.transaction.authorization_list()
+    }
+}
+
+impl_from_signed!(TxLegacy, TxEip2930, TxEip1559, TxEip7702, TxEip4844, TypedTransaction);
+
+impl From<Signed<Transaction>> for TransactionSigned {
+    fn from(value: Signed<Transaction>) -> Self {
+        let (tx, sig, hash) = value.into_parts();
+        Self::new(tx, sig, hash)
+    }
+}
+
+impl From<Signed<TxEip4844WithSidecar>> for TransactionSigned {
+    fn from(value: Signed<TxEip4844WithSidecar>) -> Self {
+        let (tx, sig, hash) = value.into_parts();
+        Self::new(tx.tx.into(), sig, hash)
+    }
+}
+
+impl From<TxEip4844Variant> for Transaction {
+    fn from(variant: TxEip4844Variant) -> Self {
+        match variant {
+            TxEip4844Variant::TxEip4844(tx) => Self::Eip4844(tx),
+            TxEip4844Variant::TxEip4844WithSidecar(tx_with_sidecar) => {
+                Self::Eip4844(tx_with_sidecar.tx)
+            }
+        }
+    }
+}
+
+impl From<Signed<TxEip4844Variant>> for TransactionSigned {
+    fn from(value: Signed<TxEip4844Variant>) -> Self {
+        let (tx, sig, hash) = value.into_parts();
+        Self::new(tx.into(), sig, hash)
+    }
+}
+
+impl From<TxEnvelope> for TransactionSigned {
+    fn from(value: TxEnvelope) -> Self {
+        match value {
+            TxEnvelope::Legacy(tx) => tx.into(),
+            TxEnvelope::Eip2930(tx) => tx.into(),
+            TxEnvelope::Eip1559(tx) => tx.into(),
+            TxEnvelope::Eip4844(tx) => tx.into(),
+            TxEnvelope::Eip7702(tx) => tx.into(),
+        }
+    }
+}
+
+impl From<TransactionSigned> for TxEnvelope {
+    fn from(value: TransactionSigned) -> Self {
+        let (tx, signature, hash) = value.into_parts();
+        match tx {
+            Transaction::Legacy(tx) => Signed::new_unchecked(tx, signature, hash).into(),
+            Transaction::Eip2930(tx) => Signed::new_unchecked(tx, signature, hash).into(),
+            Transaction::Eip1559(tx) => Signed::new_unchecked(tx, signature, hash).into(),
+            Transaction::Eip4844(tx) => Signed::new_unchecked(tx, signature, hash).into(),
+            Transaction::Eip7702(tx) => Signed::new_unchecked(tx, signature, hash).into(),
+        }
+    }
+}
+
+impl From<TransactionSigned> for Signed<Transaction> {
+    fn from(value: TransactionSigned) -> Self {
+        let (tx, sig, hash) = value.into_parts();
+        Self::new_unchecked(tx, sig, hash)
     }
 }
 
@@ -668,81 +750,89 @@ impl reth_codecs::Compact for TransactionSigned {
     }
 }
 
-impl FillTxEnv for TransactionSigned {
+impl FillTxEnv<TxEnv> for TransactionSigned {
     fn fill_tx_env(&self, tx_env: &mut TxEnv, sender: Address) {
-        tx_env.caller = sender;
-        match self.as_ref() {
-            Transaction::Legacy(tx) => {
-                tx_env.gas_limit = tx.gas_limit;
-                tx_env.gas_price = U256::from(tx.gas_price);
-                tx_env.gas_priority_fee = None;
-                tx_env.transact_to = tx.to;
-                tx_env.value = tx.value;
-                tx_env.data = tx.input.clone();
-                tx_env.chain_id = tx.chain_id;
-                tx_env.nonce = Some(tx.nonce);
-                tx_env.access_list.clear();
-                tx_env.blob_hashes.clear();
-                tx_env.max_fee_per_blob_gas.take();
-                tx_env.authorization_list = None;
-            }
-            Transaction::Eip2930(tx) => {
-                tx_env.gas_limit = tx.gas_limit;
-                tx_env.gas_price = U256::from(tx.gas_price);
-                tx_env.gas_priority_fee = None;
-                tx_env.transact_to = tx.to;
-                tx_env.value = tx.value;
-                tx_env.data = tx.input.clone();
-                tx_env.chain_id = Some(tx.chain_id);
-                tx_env.nonce = Some(tx.nonce);
-                tx_env.access_list.clone_from(&tx.access_list.0);
-                tx_env.blob_hashes.clear();
-                tx_env.max_fee_per_blob_gas.take();
-                tx_env.authorization_list = None;
-            }
-            Transaction::Eip1559(tx) => {
-                tx_env.gas_limit = tx.gas_limit;
-                tx_env.gas_price = U256::from(tx.max_fee_per_gas);
-                tx_env.gas_priority_fee = Some(U256::from(tx.max_priority_fee_per_gas));
-                tx_env.transact_to = tx.to;
-                tx_env.value = tx.value;
-                tx_env.data = tx.input.clone();
-                tx_env.chain_id = Some(tx.chain_id);
-                tx_env.nonce = Some(tx.nonce);
-                tx_env.access_list.clone_from(&tx.access_list.0);
-                tx_env.blob_hashes.clear();
-                tx_env.max_fee_per_blob_gas.take();
-                tx_env.authorization_list = None;
-            }
-            Transaction::Eip4844(tx) => {
-                tx_env.gas_limit = tx.gas_limit;
-                tx_env.gas_price = U256::from(tx.max_fee_per_gas);
-                tx_env.gas_priority_fee = Some(U256::from(tx.max_priority_fee_per_gas));
-                tx_env.transact_to = TxKind::Call(tx.to);
-                tx_env.value = tx.value;
-                tx_env.data = tx.input.clone();
-                tx_env.chain_id = Some(tx.chain_id);
-                tx_env.nonce = Some(tx.nonce);
-                tx_env.access_list.clone_from(&tx.access_list.0);
-                tx_env.blob_hashes.clone_from(&tx.blob_versioned_hashes);
-                tx_env.max_fee_per_blob_gas = Some(U256::from(tx.max_fee_per_blob_gas));
-                tx_env.authorization_list = None;
-            }
-            Transaction::Eip7702(tx) => {
-                tx_env.gas_limit = tx.gas_limit;
-                tx_env.gas_price = U256::from(tx.max_fee_per_gas);
-                tx_env.gas_priority_fee = Some(U256::from(tx.max_priority_fee_per_gas));
-                tx_env.transact_to = tx.to.into();
-                tx_env.value = tx.value;
-                tx_env.data = tx.input.clone();
-                tx_env.chain_id = Some(tx.chain_id);
-                tx_env.nonce = Some(tx.nonce);
-                tx_env.access_list.clone_from(&tx.access_list.0);
-                tx_env.blob_hashes.clear();
-                tx_env.max_fee_per_blob_gas.take();
-                tx_env.authorization_list =
-                    Some(AuthorizationList::Signed(tx.authorization_list.clone()));
-            }
+        *tx_env = match self.as_ref() {
+            Transaction::Legacy(tx) => TxEnv {
+                gas_limit: tx.gas_limit,
+                gas_price: tx.gas_price,
+                gas_priority_fee: None,
+                kind: tx.to,
+                value: tx.value,
+                data: tx.input.clone(),
+                chain_id: tx.chain_id,
+                nonce: tx.nonce,
+                access_list: Default::default(),
+                blob_hashes: Default::default(),
+                max_fee_per_blob_gas: Default::default(),
+                authorization_list: Default::default(),
+                tx_type: 0,
+                caller: sender,
+            },
+            Transaction::Eip2930(tx) => TxEnv {
+                gas_limit: tx.gas_limit,
+                gas_price: tx.gas_price,
+                gas_priority_fee: None,
+                kind: tx.to,
+                value: tx.value,
+                data: tx.input.clone(),
+                chain_id: Some(tx.chain_id),
+                nonce: tx.nonce,
+                access_list: tx.access_list.clone(),
+                blob_hashes: Default::default(),
+                max_fee_per_blob_gas: Default::default(),
+                authorization_list: Default::default(),
+                tx_type: 1,
+                caller: sender,
+            },
+            Transaction::Eip1559(tx) => TxEnv {
+                gas_limit: tx.gas_limit,
+                gas_price: tx.max_fee_per_gas,
+                gas_priority_fee: Some(tx.max_priority_fee_per_gas),
+                kind: tx.to,
+                value: tx.value,
+                data: tx.input.clone(),
+                chain_id: Some(tx.chain_id),
+                nonce: tx.nonce,
+                access_list: tx.access_list.clone(),
+                blob_hashes: Default::default(),
+                max_fee_per_blob_gas: Default::default(),
+                authorization_list: Default::default(),
+                tx_type: 2,
+                caller: sender,
+            },
+            Transaction::Eip4844(tx) => TxEnv {
+                gas_limit: tx.gas_limit,
+                gas_price: tx.max_fee_per_gas,
+                gas_priority_fee: Some(tx.max_priority_fee_per_gas),
+                kind: TxKind::Call(tx.to),
+                value: tx.value,
+                data: tx.input.clone(),
+                chain_id: Some(tx.chain_id),
+                nonce: tx.nonce,
+                access_list: tx.access_list.clone(),
+                blob_hashes: tx.blob_versioned_hashes.clone(),
+                max_fee_per_blob_gas: tx.max_fee_per_blob_gas,
+                authorization_list: Default::default(),
+                tx_type: 3,
+                caller: sender,
+            },
+            Transaction::Eip7702(tx) => TxEnv {
+                gas_limit: tx.gas_limit,
+                gas_price: tx.max_fee_per_gas,
+                gas_priority_fee: Some(tx.max_priority_fee_per_gas),
+                kind: TxKind::Call(tx.to),
+                value: tx.value,
+                data: tx.input.clone(),
+                chain_id: Some(tx.chain_id),
+                nonce: tx.nonce,
+                access_list: tx.access_list.clone(),
+                blob_hashes: Default::default(),
+                max_fee_per_blob_gas: Default::default(),
+                authorization_list: tx.authorization_list.clone(),
+                tx_type: 4,
+                caller: sender,
+            },
         }
     }
 }
@@ -794,16 +884,6 @@ impl TryFrom<TransactionSigned> for PooledTransaction {
                 Err(TransactionConversionError::UnsupportedForP2P)
             }
         }
-    }
-}
-
-impl<T> From<Signed<T>> for TransactionSigned
-where
-    T: Into<Transaction>,
-{
-    fn from(value: Signed<T>) -> Self {
-        let (tx, signature, hash) = value.into_parts();
-        Self { transaction: tx.into(), signature, hash: hash.into() }
     }
 }
 
@@ -901,6 +981,10 @@ pub mod serde_bincode_compat {
 
         fn as_repr(&self) -> Self::BincodeRepr<'_> {
             self.into()
+        }
+
+        fn from_repr(repr: Self::BincodeRepr<'_>) -> Self {
+            repr.into()
         }
     }
 
